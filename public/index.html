@@ -755,92 +755,92 @@
             }
         }
 
-        async function renderPantryItemsByLocation(pantryOwnerId, searchTerm = '') {
-            if (!pantryOwnerId) {
-                document.getElementById('pantry-items-display').innerHTML = '<p class="text-center text-muted">Please select a pantry to view.</p>';
-                document.getElementById('current-pantry-owner').textContent = 'Pantry: Not Selected';
-                return;
-            }
+async function renderPantryItemsByLocation(pantryOwnerId, searchTerm = '') {
+    if (!pantryOwnerId) {
+        document.getElementById('pantry-items-display').innerHTML = '<p class="text-center text-muted">Please select a pantry to view.</p>';
+        document.getElementById('current-pantry-owner').textContent = 'Pantry: Not Selected';
+        return;
+    }
 
-            try {
-                const pantryItemsDisplay = document.getElementById('pantry-items-display');
-                pantryItemsDisplay.innerHTML = '<p class="text-center text-muted">Loading pantry items...</p>';
+    try {
+        const pantryItemsDisplay = document.getElementById('pantry-items-display');
+        pantryItemsDisplay.innerHTML = '<p class="text-center text-muted">Loading pantry items...</p>';
 
-                const ownerDoc = await getDoc(doc(db, 'users', pantryOwnerId));
-                const ownerEmail = ownerDoc.exists() ? ownerDoc.data().name || ownerDoc.data().email : 'Unknown User';
-                document.getElementById('current-pantry-owner').textContent = `Viewing Pantry: ${ownerEmail}`;
+        const ownerDoc = await getDoc(doc(db, 'users', pantryOwnerId));
+        const ownerEmail = ownerDoc.exists() ? ownerDoc.data().name || ownerDoc.data().email : 'Unknown User';
+        document.getElementById('current-pantry-owner').textContent = `Viewing Pantry: ${ownerEmail}`;
 
-                const querySnapshot = await getDocs(collection(db, 'pantries', pantryOwnerId, 'items'));
-                const itemsByLocation = {};
-                querySnapshot.forEach(doc => {
-                    const item = { id: doc.id, ...doc.data() };
-                    const location = item.location || 'Unsorted';
-                    if (!itemsByLocation[location]) itemsByLocation[location] = [];
-                    itemsByLocation[location].push(item);
-                });
+        const querySnapshot = await getDocs(collection(db, 'pantries', pantryOwnerId, 'items'));
+        const itemsByLocation = {};
+        querySnapshot.forEach(doc => {
+            const item = { id: doc.id, ...doc.data() };
+            const location = item.location || 'Unsorted';
+            if (!itemsByLocation[location]) itemsByLocation[location] = [];
+            itemsByLocation[location].push(item);
+        });
 
-                pantryItemsDisplay.innerHTML = '';
-                if (Object.keys(itemsByLocation).length === 0) {
-                    pantryItemsDisplay.innerHTML = '<p class="text-center text-muted">This pantry is empty. Add some items!</p>';
-                    return;
-                }
-
-                const filteredLocations = Object.keys(itemsByLocation).filter(location =>
-                    location.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    itemsByLocation[location].some(item => item.name.toLowerCase().includes(searchTerm.toLowerCase()))
-                ).sort();
-
-                if (filteredLocations.length === 0) {
-                    pantryItemsDisplay.innerHTML = '<p class="text-center text-muted">No matching items found for your search.</p>';
-                    return;
-                }
-
-                filteredLocations.forEach(location => {
-                    const locationGroupDiv = document.createElement('div');
-                    locationGroupDiv.className = 'pantry-location-group';
-                    locationGroupDiv.innerHTML = `<h4>${location}</h4>`;
-                    itemsByLocation[location].filter(item =>
-                        item.name.toLowerCase().includes(searchTerm.toLowerCase())
-                    ).forEach(item => {
-                        const itemDiv = document.createElement('div');
-                        itemDiv.className = 'pantry-item-box';
-                        itemDiv.innerHTML = `
-                            <span>
-                                ${item.image ? `<img src="${item.image}" width="40" class="rounded" alt="${item.name}">` : ''}
-                                <strong>${item.name}</strong> (Qty: ${item.quantity})
-                            </span>
-                            <div>
-                                <button class="edit-item-btn" data-item-id="${item.id}" data-user-id="${pantryOwnerId}" data-quantity="${item.quantity}">Edit</button>
-                                <button class="remove-item-btn btn btn-danger btn-sm" data-item-id="${item.id}" data-user-id="${pantryOwnerId}">Remove</button>
-                            </div>
-                        `;
-                        locationGroupDiv.appendChild(itemDiv);
-                    });
-                    pantryItemsDisplay.appendChild(locationGroupDiv);
-                });
-
-                pantryItemsDisplay.querySelectorAll('.remove-item-btn').forEach(button => {
-                    button.addEventListener('click', (event) => {
-                        const itemId = event.target.dataset.itemId;
-                        const currentPantryOwnerId = event.target.dataset.userId;
-                        removeItem(itemId, currentPantryOwnerId);
-                    });
-                });
-                pantryItemsDisplay.querySelectorAll('.edit-item-btn').forEach(button => {
-                    button.addEventListener('click', (event) => {
-                        const itemId = event.target.dataset.itemId;
-                        const userId = event.target.dataset.userId;
-                        const currentQuantity = parseInt(event.target.dataset.quantity);
-                        document.getElementById('edit-quantity-input').value = currentQuantity;
-                        editQuantityModal.show();
-                        window.currentEditingItem = { itemId, userId };
-                    });
-                });
-            } catch (error) {
-                alert('Error loading pantry items by location: ' + error.message);
-                console.error("Error loading pantry items by location:", error);
-            }
+        pantryItemsDisplay.innerHTML = '';
+        if (Object.keys(itemsByLocation).length === 0) {
+            pantryItemsDisplay.innerHTML = '<p class="text-center text-muted">This pantry is empty. Add some items!</p>';
+            return;
         }
+
+        const filteredLocations = Object.keys(itemsByLocation).filter(location =>
+            location.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            itemsByLocation[location].some(item => item.name.toLowerCase().includes(searchTerm.toLowerCase()))
+        ).sort();
+
+        if (filteredLocations.length === 0) {
+            pantryItemsDisplay.innerHTML = '<p class="text-center text-muted">No matching items found for your search.</p>';
+            return;
+        }
+
+        filteredLocations.forEach(location => {
+            const locationGroupDiv = document.createElement('div');
+            locationGroupDiv.className = 'pantry-location-group';
+            locationGroupDiv.innerHTML = `<h4>${location}</h4>`;
+            itemsByLocation[location].filter(item =>
+                item.name.toLowerCase().includes(searchTerm.toLowerCase())
+            ).forEach(item => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'pantry-item-box';
+                itemDiv.innerHTML = `
+                    <span>
+                        ${item.image ? `<img src="${item.image}" width="40" class="rounded" alt="${item.name}">` : ''}
+                        <strong>${item.name}</strong> (Qty: ${item.quantity})
+                    </span>
+                    <div>
+                        <button class="edit-item-btn" data-item-id="${item.id}" data-user-id="${pantryOwnerId}" data-quantity="${item.quantity}">Edit</button>
+                        <button class="remove-item-btn btn btn-danger btn-sm" data-item-id="${item.id}" data-user-id="${pantryOwnerId}">Remove</button>
+                    </div>
+                `;
+                locationGroupDiv.appendChild(itemDiv);
+            });
+            pantryItemsDisplay.appendChild(locationGroupDiv);
+        });
+
+        pantryItemsDisplay.querySelectorAll('.remove-item-btn').forEach(button => {
+            button.addEventListener('click', (event) => {
+                const itemId = event.target.dataset.itemId;
+                const currentPantryOwnerId = event.target.dataset.userId;
+                removeItem(itemId, currentPantryOwnerId);
+            });
+        });
+        pantryItemsDisplay.querySelectorAll('.edit-item-btn').forEach(button => {
+            button.addEventListener('click', (event) => {
+                const itemId = event.target.dataset.itemId;
+                const userId = event.target.dataset.userId;
+                const currentQuantity = parseInt(event.target.dataset.quantity);
+                document.getElementById('edit-quantity-input').value = currentQuantity;
+                editQuantityModal.show();
+                window.currentEditingItem = { itemId, userId };
+            });
+        });
+    } catch (error) {
+        alert('Error loading pantry items by location: ' + error.message);
+        console.error("Error loading pantry items by location:", error);
+    }
+}
 
         window.removeItem = async function(itemId, pantryOwnerId) {
             if (!confirm('Are you sure you want to remove this item?')) return;
