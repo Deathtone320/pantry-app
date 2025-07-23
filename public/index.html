@@ -1,14 +1,14 @@
+</div>
+</div>
 <script>
     // Wait for the window to load and check Firebase readiness
     window.onload = function() {
-        // Ensure Firebase is loaded
         if (typeof firebase === 'undefined') {
             console.error('Firebase SDK not loaded');
             alert('Error: Firebase SDK failed to load. Please refresh the page.');
             return;
         }
 
-        // Initialize Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyBhJKdi2UnZX0VFtqkKnrOIiaBWZZgC-V0",
             authDomain: "pantry-app-1a761.firebaseapp.com",
@@ -23,7 +23,6 @@
         const db = firebase.firestore();
         const storage = firebase.storage();
 
-        // Authentication State
         auth.onAuthStateChanged(user => {
             if (user) {
                 document.getElementById('login-section').style.display = 'none';
@@ -36,7 +35,6 @@
             }
         });
 
-        // Login
         async function login() {
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
@@ -47,7 +45,6 @@
             }
         }
 
-        // Register
         async function register() {
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
@@ -59,7 +56,6 @@
             }
         }
 
-        // Start Barcode Scanner
         function startScanner() {
             Quagga.init({
                 inputStream: {
@@ -85,7 +81,6 @@
             });
         }
 
-        // Fetch Item from Open Food Facts
         async function fetchItem(barcode) {
             try {
                 const response = await axios.get(`https://world.openfoodfacts.org/api/v0/product/${barcode}.json`);
@@ -106,7 +101,6 @@
             }
         }
 
-        // Add Item to Pantry
         async function addItemToPantry(item) {
             const user = auth.currentUser;
             if (!user) return alert('Not logged in');
@@ -118,7 +112,6 @@
             }
         }
 
-        // Add Manual Item
         async function addManualItem() {
             const user = auth.currentUser;
             if (!user) return alert('Not logged in');
@@ -145,7 +138,6 @@
             }
         }
 
-        // Load Pantry
         async function loadPantry(userId) {
             try {
                 const pantryList = document.getElementById('pantry-list');
@@ -159,7 +151,6 @@
                     pantryList.appendChild(li);
                 });
 
-                // Load shared pantries
                 const sharedSnapshot = await db.collection('shared_pantries').where('sharedUserId', '==', userId).get();
                 for (const sharedDoc of sharedSnapshot.docs) {
                     const sharedUserId = sharedDoc.data().userId;
@@ -177,7 +168,6 @@
             }
         }
 
-        // Get Recipe Suggestions
         async function getRecipes() {
             const user = auth.currentUser;
             if (!user) return alert('Not logged in');
@@ -198,12 +188,10 @@
             }
         }
 
-        // Show User Management
         function showUserManagement() {
             document.getElementById('user-management').style.display = 'block';
         }
 
-        // Add User to Shared Pantry
         async function addUser() {
             const user = auth.currentUser;
             if (!user) return alert('Not logged in');
@@ -223,7 +211,6 @@
             }
         }
 
-        // Load Shared Users
         async function loadUsers(userId) {
             try {
                 const userList = document.getElementById('user-list');
@@ -244,7 +231,6 @@
             }
         }
 
-        // Save User Email to Firestore on Registration
         auth.onAuthStateChanged(async user => {
             if (user && !user.emailVerified) {
                 await db.collection('users').doc(user.uid).set({ email: user.email });
