@@ -280,6 +280,7 @@
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
+                        <h5 id="current-pantry-owner"></h5> <!-- Displays current pantry owner -->
                         <input type="text" id="pantry-search-bar" class="form-control mb-3" placeholder="Search pantry items...">
                         <div id="pantry-items-display">
                             <!-- Pantry items grouped by location will be rendered here -->
@@ -388,7 +389,7 @@
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
         import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendEmailVerification, sendPasswordResetEmail, signOut } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-        import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc, setDoc, query, where } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+        import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc, setDoc, query, where, updateDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
         import { getStorage, ref, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js';
 
         // Replace with your actual Firebase configuration
@@ -418,12 +419,51 @@
         // Temporary item storage for location input flow
         let currentItemToAdd = null;
 
+        // Global variable to track the currently active pantry (defaults to current user's)
+        let currentPantryUserId = null; // Will be set in onAuthStateChanged
+
         // Show/Hide Sections - Attached to window for global access
         window.showSection = function(sectionId) {
             ['welcome-section', 'login-section', 'register-section', 'verify-email-section', 'app-section'].forEach(id => {
                 document.getElementById(id).style.display = id === sectionId ? 'block' : 'none';
             });
         };
+
+        // Function to parse URL parameters for invitation acceptance
+        async function handleInvitationAcceptance() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const action = urlParams.get('action');
+            const inviterId = urlParams.get('inviterId');
+            const invitationDocId = urlParams.get('invitationDocId');
+
+            if (action === 'acceptInvite' && inviterId && invitationDocId) {
+                if (auth.currentUser) {
+                    // User is logged in, try to accept the invite
+                    try {
+                        const invitationRef = doc(db, 'pantries', inviterId, 'shared_users', invitationDocId);
+                        await updateDoc(invitationRef, {
+                            status: 'accepted',
+                            acceptedByUid: auth.currentUser.uid,
+                            acceptedAt: new Date()
+                        });
+                        alert('Invitation accepted! You now have access to this pantry.');
+                        // Clear URL parameters to prevent re-acceptance on refresh
+                        window.history.replaceState({}, document.title, window.location.pathname);
+                        window.showSection('app-section'); // Go to app
+                    } catch (error) {
+                        console.error("Error accepting invitation:", error);
+                        alert('Failed to accept invitation: ' + error.message);
+                    }
+                } else {
+                    // User is not logged in, prompt them to log in/register
+                    alert('Please log in or register to accept the invitation.');
+                    window.showSection('welcome-section');
+                    // Optionally, store inviterId and invitationDocId in local storage
+                    // so it can be picked up after login/registration.
+                    localStorage.setItem('pendingInvitation', JSON.stringify({ inviterId, invitationDocId }));
+                }
+            }
+        }
 
         // Initialize Modals and Offcanvas
         document.addEventListener('DOMContentLoaded', function() {
@@ -461,6 +501,13 @@
                 const password = document.getElementById('login-password').value;
                 try {
                     await signInWithEmailAndPassword(auth, email, password);
+                    // After successful login, check for pending invitations
+                    const pendingInvitation = localStorage.getItem('pendingInvitation');
+                    if (pendingInvitation) {
+                        const { inviterId, invitationDocId } = JSON.parse(pendingInvitation);
+                        localStorage.removeItem('pendingInvitation'); // Clear it
+                        await handleInvitationAcceptance(inviterId, invitationDocId); // Try to accept
+                    }
                 } catch (error) {
                     alert('Login failed: ' + error.message);
                 }
@@ -479,6 +526,13 @@
                     await sendEmailVerification(auth.currentUser);
                     alert('Verification email sent. Please check your inbox.');
                     window.showSection('verify-email-section');
+                    // After successful registration, check for pending invitations
+                    const pendingInvitation = localStorage.getItem('pendingInvitation');
+                    if (pendingInvitation) {
+                        const { inviterId, invitationDocId } = JSON.parse(pendingInvitation);
+                        localStorage.removeItem('pendingInvitation'); // Clear it
+                        await handleInvitationAcceptance(inviterId, invitationDocId); // Try to accept
+                    }
                 } catch (error) {
                     alert('Registration failed: ' + error.message);
                 }
@@ -512,11 +566,12 @@
             document.getElementById('show-manual-add-modal-btn').addEventListener('click', () => manualAddItemModal.show());
             document.getElementById('show-my-pantry-btn').addEventListener('click', () => {
                 myPantryModal.show();
-                renderPantryItemsByLocation(auth.currentUser.uid); // Load items when modal opens
+                renderPantryItemsByLocation(currentPantryUserId); // Load items when modal opens
             });
             document.getElementById('show-recipes-btn').addEventListener('click', () => {
                 recipesModal.show();
                 loadSavedRecipes(auth.currentUser.uid); // Load saved recipes when modal opens
+                document.getElementById('found-recipes-display').innerHTML = ''; // Clear previous search results
             });
 
             // Manual Add Item Modal Button
@@ -527,7 +582,7 @@
 
             // My Pantry Search
             document.getElementById('pantry-search-bar').addEventListener('input', (event) => {
-                renderPantryItemsByLocation(auth.currentUser.uid, event.target.value);
+                renderPantryItemsByLocation(currentPantryUserId, event.target.value);
             });
 
             // Recipes Modal Buttons
@@ -557,19 +612,29 @@
                 loadUsers(auth.currentUser.uid);
             });
             document.getElementById('offcanvas-logout-link').addEventListener('click', logout);
+
+            // Handle invitation acceptance on page load
+            handleInvitationAcceptance();
         });
 
         // Auth State Listener
-        onAuthStateChanged(auth, user => {
+        onAuthStateChanged(auth, async user => {
             if (user) {
+                currentPantryUserId = user.uid; // Set default pantry to current user's
                 if (user.emailVerified) {
                     window.showSection('app-section');
-                    // No need to load a general pantry list on the main screen anymore
-                    // Pantry items are viewed via the "My Pantry" modal.
+                    // Check if there's a pending invitation from localStorage after successful login/registration
+                    const pendingInvitation = localStorage.getItem('pendingInvitation');
+                    if (pendingInvitation) {
+                        const { inviterId, invitationDocId } = JSON.parse(pendingInvitation);
+                        localStorage.removeItem('pendingInvitation');
+                        await handleInvitationAcceptance(inviterId, invitationDocId);
+                    }
                 } else {
                     window.showSection('verify-email-section');
                 }
             } else {
+                currentPantryUserId = null; // Clear current pantry if logged out
                 window.showSection('welcome-section');
             }
         });
@@ -609,12 +674,12 @@
             try {
                 const response = await axios.get(`https://world.openfoodfacts.org/api/v0/product/${barcode}.json`);
                 if (response.data.status === 1) {
-                    const product = response.data.product;
+                    const product = response.data; // product is directly in response.data for some cases
                     currentItemToAdd = {
-                        name: product.product_name || 'Unknown Product',
+                        name: product.product_name || product.product.product_name || 'Unknown Product',
                         barcode,
                         quantity: 1,
-                        image: product.image_url || ''
+                        image: product.image_url || product.product.image_url || ''
                     };
                     promptForItemLocation();
                 } else {
@@ -626,6 +691,7 @@
                 }
             } catch (error) {
                 alert('Error fetching product: ' + error.message);
+                console.error("Error fetching product:", error);
             }
         }
 
@@ -707,8 +773,8 @@
                 // Add/update location in user's locations subcollection
                 await setDoc(doc(db, 'users', user.uid, 'locations', location), { lastUsed: new Date() }, { merge: true });
 
-                // Add item to pantry with location
-                await addDoc(collection(db, 'pantries', user.uid, 'items'), {
+                // Add item to the currently selected pantry
+                await addDoc(collection(db, 'pantries', currentPantryUserId, 'items'), {
                     ...currentItemToAdd,
                     location: location,
                     addedAt: new Date()
@@ -719,7 +785,7 @@
                 currentItemToAdd = null; // Clear temporary item
                 // Conditionally update My Pantry modal if it's open
                 if (myPantryModal._isShown) {
-                    renderPantryItemsByLocation(user.uid, document.getElementById('pantry-search-bar').value);
+                    renderPantryItemsByLocation(currentPantryUserId, document.getElementById('pantry-search-bar').value);
                 }
             } catch (error) {
                 alert('Error saving item with location: ' + error.message);
@@ -727,51 +793,25 @@
             }
         }
 
-        // Load Pantry (This function is no longer used for the main screen display)
-        // It remains here for context but is effectively deprecated in this version.
-        /*
-        async function loadPantry(userId) {
-            try {
-                const pantryList = document.getElementById('pantry-list');
-                pantryList.innerHTML = '';
-                const querySnapshot = await getDocs(collection(db, 'pantries', userId, 'items'));
-                if (querySnapshot.empty) {
-                    pantryList.innerHTML = '<li class="list-group-item text-muted">Your pantry is empty. Add some items!</li>';
-                } else {
-                    querySnapshot.forEach(doc => {
-                        const item = doc.data();
-                        const li = document.createElement('li');
-                        li.className = 'list-group-item d-flex justify-content-between align-items-center';
-                        li.innerHTML = `
-                            <span>
-                                ${item.name} (Qty: ${item.quantity}) ${item.location ? `[${item.location}]` : ''}
-                                ${item.image ? `<img src="${item.image}" width="50" class="rounded ms-2" alt="${item.name}">` : ''}
-                            </span>
-                            <button class="remove-item-btn btn btn-danger btn-sm" data-item-id="${doc.id}" data-user-id="${userId}">Remove</button>
-                        `;
-                        pantryList.appendChild(li);
-                    });
-                    pantryList.querySelectorAll('.remove-item-btn').forEach(button => {
-                        button.addEventListener('click', (event) => {
-                            const itemId = event.target.dataset.itemId;
-                            const currentUserId = event.target.dataset.userId;
-                            removeItem(itemId, currentUserId);
-                        });
-                    });
-                }
-            } catch (error) {
-                alert('Error loading pantry: ' + error.message);
-            }
-        }
-        */
-
         // Render Pantry Items by Location (for My Pantry Modal)
-        async function renderPantryItemsByLocation(userId, searchTerm = '') {
+        async function renderPantryItemsByLocation(pantryOwnerId, searchTerm = '') {
+            if (!pantryOwnerId) {
+                document.getElementById('pantry-items-display').innerHTML = '<p class="text-center text-muted">Please select a pantry to view.</p>';
+                document.getElementById('current-pantry-owner').textContent = 'Pantry: Not Selected';
+                return;
+            }
+
             try {
                 const pantryItemsDisplay = document.getElementById('pantry-items-display');
                 pantryItemsDisplay.innerHTML = '<p class="text-center text-muted">Loading pantry items...</p>';
 
-                const querySnapshot = await getDocs(collection(db, 'pantries', userId, 'items'));
+                // Get owner's email for display
+                const ownerDoc = await getDoc(doc(db, 'users', pantryOwnerId));
+                const ownerEmail = ownerDoc.exists() ? ownerDoc.data().name || ownerDoc.data().email : 'Unknown User';
+                document.getElementById('current-pantry-owner').textContent = `Viewing Pantry: ${ownerEmail}`;
+
+
+                const querySnapshot = await getDocs(collection(db, 'pantries', pantryOwnerId, 'items'));
                 const itemsByLocation = {};
                 querySnapshot.forEach(doc => {
                     const item = { id: doc.id, ...doc.data() };
@@ -785,7 +825,7 @@
                 pantryItemsDisplay.innerHTML = ''; // Clear loading message
 
                 if (Object.keys(itemsByLocation).length === 0) {
-                    pantryItemsDisplay.innerHTML = '<p class="text-center text-muted">Your pantry is empty. Add some items!</p>';
+                    pantryItemsDisplay.innerHTML = '<p class="text-center text-muted">This pantry is empty. Add some items!</p>';
                     return;
                 }
 
@@ -814,7 +854,7 @@
                                 ${item.image ? `<img src="${item.image}" width="40" class="rounded" alt="${item.name}">` : ''}
                                 <strong>${item.name}</strong> (Qty: ${item.quantity})
                             </span>
-                            <button class="remove-item-btn btn btn-danger btn-sm" data-item-id="${item.id}" data-user-id="${userId}">Remove</button>
+                            <button class="remove-item-btn btn btn-danger btn-sm" data-item-id="${item.id}" data-user-id="${pantryOwnerId}">Remove</button>
                         `;
                         locationGroupDiv.appendChild(itemDiv);
                     });
@@ -825,8 +865,8 @@
                 pantryItemsDisplay.querySelectorAll('.remove-item-btn').forEach(button => {
                     button.addEventListener('click', (event) => {
                         const itemId = event.target.dataset.itemId;
-                        const currentUserId = event.target.dataset.userId;
-                        removeItem(itemId, currentUserId);
+                        const currentPantryOwnerId = event.target.dataset.userId; // Use the owner ID from data-user-id
+                        removeItem(itemId, currentPantryOwnerId);
                     });
                 });
 
@@ -838,16 +878,16 @@
 
 
         // Remove Item from Pantry
-        window.removeItem = async function(itemId, userId) {
+        window.removeItem = async function(itemId, pantryOwnerId) { // Now takes pantryOwnerId
             if (!confirm('Are you sure you want to remove this item?')) {
                 return;
             }
             try {
-                await deleteDoc(doc(db, 'pantries', userId, 'items', itemId));
+                await deleteDoc(doc(db, 'pantries', pantryOwnerId, 'items', itemId));
                 alert('Item removed successfully!');
                 // Reload My Pantry modal if it's open
                 if (myPantryModal._isShown) {
-                    renderPantryItemsByLocation(userId, document.getElementById('pantry-search-bar').value);
+                    renderPantryItemsByLocation(pantryOwnerId, document.getElementById('pantry-search-bar').value);
                 }
             } catch (error) {
                 alert('Error removing item: ' + error.message);
@@ -864,11 +904,12 @@
             foundRecipesDisplay.innerHTML = '<p class="text-center text-muted">Finding recipes...</p>';
 
             try {
-                const querySnapshot = await getDocs(collection(db, 'pantries', user.uid, 'items'));
+                // Fetch ingredients from the currently selected pantry
+                const querySnapshot = await getDocs(collection(db, 'pantries', currentPantryUserId, 'items'));
                 const ingredients = querySnapshot.docs.map(doc => doc.data().name).join(',');
 
                 if (!ingredients) {
-                    foundRecipesDisplay.innerHTML = '<li class="list-group-item text-muted">Your pantry is empty. Add items to get recipe suggestions!</li>';
+                    foundRecipesDisplay.innerHTML = '<li class="list-group-item text-muted">The current pantry is empty. Add items to get recipe suggestions!</li>';
                     return;
                 }
 
@@ -885,7 +926,7 @@
                 foundRecipesDisplay.innerHTML = ''; // Clear loading message
 
                 if (response.data.length === 0) {
-                    foundRecipesDisplay.innerHTML = '<li class="list-group-item text-muted">No recipes found with your current pantry items. Try adding more!</li>';
+                    foundRecipesDisplay.innerHTML = '<li class="list-group-item text-muted">No recipes found with items from the current pantry. Try adding more!</li>';
                 } else {
                     response.data.forEach(recipe => {
                         const li = document.createElement('li');
@@ -1022,7 +1063,7 @@
         }
 
 
-        // Add User to Shared Pantry (Concept for email invitation)
+        // Add User to Shared Pantry (Now triggers a Cloud Function conceptually)
         async function addUser(newUserEmail) {
             const user = auth.currentUser;
             if (!user) return alert('Not logged in');
@@ -1033,46 +1074,47 @@
             }
 
             try {
-                // Add the user's email to the inviting user's shared_users subcollection
-                // This record will signify an invitation has been sent/is pending
-                await addDoc(collection(db, 'pantries', user.uid, 'shared_users'), {
+                // 1. Create a pending invitation record in Firestore
+                const invitationDocRef = await addDoc(collection(db, 'pantries', user.uid, 'shared_users'), {
                     email: newUserEmail,
                     status: 'pending', // Status can be 'pending', 'accepted', 'rejected'
-                    invitedBy: user.email, // Store who invited them
+                    invitedBy: user.email,
+                    invitedById: user.uid, // Store inviter's UID
                     timestamp: new Date()
                 });
 
-                alert(`Invitation sent to ${newUserEmail}! (In a real app, this would trigger an email via a Cloud Function)`);
+                // 2. Construct the invitation link for the email
+                // This link will point back to your app with parameters for acceptance
+                const invitationLink = `${window.location.origin}/?action=acceptInvite&inviterId=${user.uid}&invitationDocId=${invitationDocRef.id}`;
+
+                // 3. Trigger a Firebase Cloud Function to send the email
+                // This 'fetch' call is to your hypothetical Cloud Function endpoint
+                // Replace '/sendInvitationEmail' with your actual Cloud Function URL/endpoint
+                const response = await fetch('/sendInvitationEmail', { // <--- IMPORTANT: Replace with your Cloud Function URL
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        recipientEmail: newUserEmail,
+                        inviterEmail: user.email,
+                        pantryId: user.uid,
+                        invitationDocId: invitationDocRef.id, // Pass the ID of the Firestore doc
+                        invitationLink: invitationLink // Pass the generated link
+                    })
+                });
+
+                if (response.ok) {
+                    alert(`Invitation sent to ${newUserEmail}!`);
+                } else {
+                    const errorData = await response.json();
+                    alert(`Failed to send invitation to ${newUserEmail}: ${errorData.message || response.statusText}`);
+                    console.error("Error triggering Cloud Function:", errorData);
+                    // Optionally, delete the Firestore invitation record if email sending failed
+                    await deleteDoc(invitationDocRef);
+                }
                 loadUsers(user.uid); // Reload the list of shared users
-
-                /*
-                // --- REAL-WORLD EMAIL SENDING (REQUIRES FIREBASE CLOUD FUNCTION) ---
-                // In a real application, you would typically trigger a Firebase Cloud Function here.
-                // The Cloud Function would then use a service like SendGrid or Nodemailer to send the email.
-                // The 'accept' button in the email would link back to your app, potentially with a unique token
-                // that, when clicked, would update the status in Firestore and grant access.
-                // Example (conceptual, not runnable client-side):
-                // const response = await fetch('/sendInvitationEmail', {
-                //     method: 'POST',
-                //     headers: { 'Content-Type': 'application/json' },
-                //     body: JSON.stringify({
-                //         recipientEmail: newUserEmail,
-                //         inviterEmail: user.email,
-                //         pantryId: user.uid,
-                //         invitationDocId: docRef.id // The ID of the document just created in shared_users
-                //     })
-                // });
-                // if (response.ok) {
-                //     alert('Invitation sent successfully!');
-                // } else {
-                //     alert('Failed to send invitation.');
-                // }
-                // -------------------------------------------------------------------
-                */
-
             } catch (error) {
-                alert('Error adding user: ' + error.message);
-                console.error("Error adding user to shared_users:", error);
+                alert('Error adding user or sending invitation: ' + error.message);
+                console.error("Error in addUser function:", error);
             }
         }
 
@@ -1089,8 +1131,20 @@
                         const userData = docSnapshot.data();
                         const li = document.createElement('li');
                         li.className = 'list-group-item d-flex justify-content-between align-items-center';
+                        // Determine the UID to use for the checkbox if accepted, otherwise use a placeholder
+                        const targetPantryUid = userData.status === 'accepted' ? userData.acceptedByUid : 'pending';
+
                         li.innerHTML = `
-                            <span>${userData.email} (${userData.status})</span>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="user-${docSnapshot.id}-checkbox"
+                                    data-pantry-owner-id="${userId}"
+                                    data-invited-user-id="${targetPantryUid}"
+                                    ${currentPantryUserId === targetPantryUid ? 'checked' : ''}
+                                    ${userData.status !== 'accepted' ? 'disabled' : ''}>
+                                <label class="form-check-label" for="user-${docSnapshot.id}-checkbox">
+                                    ${userData.email} (${userData.status})
+                                </label>
+                            </div>
                             <button class="remove-user-btn" data-doc-id="${docSnapshot.id}" data-user-id="${userId}">
                                 &times; <!-- Red X icon -->
                             </button>
@@ -1098,12 +1152,36 @@
                         userList.appendChild(li);
                     });
 
-                    // Attach event listeners to the dynamically created remove buttons
+                    // Attach event listeners to the dynamically created remove buttons and checkboxes
                     userList.querySelectorAll('.remove-user-btn').forEach(button => {
                         button.addEventListener('click', (event) => {
                             const docId = event.target.dataset.docId;
                             const currentUserId = event.target.dataset.userId;
                             removeSharedUser(docId, currentUserId);
+                        });
+                    });
+
+                    userList.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+                        checkbox.addEventListener('change', (event) => {
+                            if (event.target.checked) {
+                                // If checked, set this pantry as the current active pantry
+                                currentPantryUserId = event.target.dataset.invitedUserId;
+                                // Uncheck all other checkboxes
+                                userList.querySelectorAll('input[type="checkbox"]').forEach(otherCheckbox => {
+                                    if (otherCheckbox !== event.target) {
+                                        otherCheckbox.checked = false;
+                                    }
+                                });
+                            } else {
+                                // If unchecked, revert to current user's pantry
+                                currentPantryUserId = auth.currentUser.uid;
+                            }
+                            // Re-render the pantry view in the My Pantry modal if it's open
+                            if (myPantryModal._isShown) {
+                                renderPantryItemsByLocation(currentPantryUserId, document.getElementById('pantry-search-bar').value);
+                            }
+                            // Close the manage access modal after selection
+                            userManagementModal.hide();
                         });
                     });
                 }
@@ -1122,6 +1200,15 @@
                 await deleteDoc(doc(db, 'pantries', userId, 'shared_users', docId));
                 alert('User access removed successfully!');
                 loadUsers(userId); // Reload the list
+                // If the removed user's pantry was currently selected, revert to current user's pantry
+                // Note: docId here is the ID of the shared_users document, not necessarily the acceptedByUid
+                // We need to check if the currentPantryUserId matches the acceptedByUid of the removed doc
+                // This logic might need refinement if the acceptedByUid is not directly available here
+                // A simpler approach is to always revert to the current user's pantry if *any* shared user is removed.
+                currentPantryUserId = auth.currentUser.uid;
+                if (myPantryModal._isShown) {
+                    renderPantryItemsByLocation(currentPantryUserId, document.getElementById('pantry-search-bar').value);
+                }
             } catch (error) {
                 alert('Error removing user access: ' + error.message);
                 console.error("Error removing shared user:", error);
