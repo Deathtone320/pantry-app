@@ -126,13 +126,55 @@
             left: 0;
             z-index: 2; /* Ensure drawing buffer is on top of the video */
         }
-        .remove-user-btn {
+        .remove-user-btn, .remove-item-btn, .remove-recipe-btn {
             background: none;
             border: none;
             color: red;
             font-weight: bold;
             margin-left: 10px;
             cursor: pointer;
+        }
+        .pantry-location-group {
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            background-color: #fff;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .pantry-location-group h4 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            color: #007bff;
+        }
+        .pantry-item-box {
+            border: 1px solid #eee;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 10px;
+            background-color: #f9f9f9;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .pantry-item-box img {
+            margin-right: 10px;
+        }
+        .recipe-item-box {
+            border: 1px solid #eee;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 10px;
+            background-color: #f9f9f9;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        .recipe-item-box img {
+            margin-top: 10px;
+            max-width: 100px;
+            height: auto;
+            border-radius: 5px;
         }
     </style>
 </head>
@@ -181,11 +223,10 @@
                 <h2 class="mb-4">Pantry</h2>
                 <button class="btn btn-primary mb-3" id="scan-barcode-btn" data-bs-toggle="tooltip" title="Scan a barcode to add an item to your pantry">Scan Barcode</button>
                 <div id="scanner-container" class="mb-3"></div>
-                <!-- New button to open manual add item modal -->
                 <button class="btn btn-secondary mb-3" id="show-manual-add-modal-btn" data-bs-toggle="tooltip" title="Add an item to your pantry manually">Add Item Manually</button>
-                <ul id="pantry-list" class="list-group mb-3"></ul>
-                <button class="btn btn-primary" id="get-recipes-btn" data-bs-toggle="tooltip" title="Get recipe suggestions based on your pantry items">Get Recipe Suggestions</button>
-                <ul id="recipe-list" class="list-group mt-3"></ul>
+                <!-- New buttons for My Pantry and Recipes -->
+                <button class="btn btn-info text-white mb-3" id="show-my-pantry-btn" data-bs-toggle="tooltip" title="View and manage all items in your pantry">My Pantry</button>
+                <button class="btn btn-success text-white mb-3" id="show-recipes-btn" data-bs-toggle="tooltip" title="Find and manage recipes based on your pantry">Recipes</button>
             </div>
         </div>
 
@@ -209,6 +250,72 @@
                 </div>
             </div>
         </div>
+
+        <!-- Location Input Modal -->
+        <div id="location-input-modal" class="modal fade" tabindex="-1" aria-labelledby="locationInputLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="locationInputLabel">Enter Item Location</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="text" id="item-location" class="form-control" placeholder="e.g., Pantry Shelf 1, Fridge, Freezer" list="previous-locations" required>
+                        <datalist id="previous-locations"></datalist>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-primary" id="save-location-btn">Save Location</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- My Pantry Modal -->
+        <div id="my-pantry-modal" class="modal fade" tabindex="-1" aria-labelledby="myPantryLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="myPantryLabel">My Pantry</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="text" id="pantry-search-bar" class="form-control mb-3" placeholder="Search pantry items...">
+                        <div id="pantry-items-display">
+                            <!-- Pantry items grouped by location will be rendered here -->
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recipes Modal -->
+        <div id="recipes-modal" class="modal fade" tabindex="-1" aria-labelledby="recipesModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="recipesModalLabel">Recipes</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <button class="btn btn-primary mb-3" id="find-recipe-btn">Find me a Recipe</button>
+                        <hr>
+                        <h4 class="mb-3">Saved Recipes</h4>
+                        <input type="text" id="saved-recipes-search-bar" class="form-control mb-3" placeholder="Search saved recipes...">
+                        <div id="saved-recipes-display">
+                            <!-- Saved recipes will be rendered here -->
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
 
         <!-- Account Settings Modal -->
         <div id="account-settings-modal" class="modal fade" tabindex="-1" aria-labelledby="accountSettingsLabel" aria-hidden="true">
@@ -277,7 +384,7 @@
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
         import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendEmailVerification, sendPasswordResetEmail, signOut } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-        import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+        import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc, setDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
         import { getStorage, ref, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js';
 
         // Replace with your actual Firebase configuration
@@ -297,9 +404,15 @@
 
         // Global variables for modals, so we can control them from functions
         let manualAddItemModal;
+        let locationInputModal;
+        let myPantryModal;
+        let recipesModal;
         let accountSettingsModal;
         let userManagementModal;
         let settingsOffcanvas;
+
+        // Temporary item storage for location input flow
+        let currentItemToAdd = null;
 
         // Show/Hide Sections - Attached to window for global access
         window.showSection = function(sectionId) {
@@ -311,6 +424,9 @@
         // Initialize Modals and Offcanvas
         document.addEventListener('DOMContentLoaded', function() {
             manualAddItemModal = new bootstrap.Modal(document.getElementById('manual-add-item-modal'));
+            locationInputModal = new bootstrap.Modal(document.getElementById('location-input-modal'));
+            myPantryModal = new bootstrap.Modal(document.getElementById('my-pantry-modal'));
+            recipesModal = new bootstrap.Modal(document.getElementById('recipes-modal'));
             accountSettingsModal = new bootstrap.Modal(document.getElementById('account-settings-modal'));
             userManagementModal = new bootstrap.Modal(document.getElementById('user-management-modal'));
             settingsOffcanvas = new bootstrap.Offcanvas(document.getElementById('settings-offcanvas'));
@@ -387,29 +503,54 @@
                 }
             });
 
+            // Main App Buttons
             document.getElementById('scan-barcode-btn').addEventListener('click', startScanner);
             document.getElementById('show-manual-add-modal-btn').addEventListener('click', () => manualAddItemModal.show());
-            document.getElementById('add-manual-item-btn-modal').addEventListener('click', addManualItem); // This is the button inside the modal
-            document.getElementById('get-recipes-btn').addEventListener('click', getRecipes);
+            document.getElementById('show-my-pantry-btn').addEventListener('click', () => {
+                myPantryModal.show();
+                renderPantryItemsByLocation(auth.currentUser.uid); // Load items when modal opens
+            });
+            document.getElementById('show-recipes-btn').addEventListener('click', () => {
+                recipesModal.show();
+                loadSavedRecipes(auth.currentUser.uid); // Load saved recipes when modal opens
+            });
+
+            // Manual Add Item Modal Button
+            document.getElementById('add-manual-item-btn-modal').addEventListener('click', addManualItem);
+
+            // Location Input Modal Button
+            document.getElementById('save-location-btn').addEventListener('click', saveItemLocation);
+
+            // My Pantry Search
+            document.getElementById('pantry-search-bar').addEventListener('input', (event) => {
+                renderPantryItemsByLocation(auth.currentUser.uid, event.target.value);
+            });
+
+            // Recipes Modal Buttons
+            document.getElementById('find-recipe-btn').addEventListener('click', getRecipes);
+            document.getElementById('saved-recipes-search-bar').addEventListener('input', (event) => {
+                loadSavedRecipes(auth.currentUser.uid, event.target.value);
+            });
+
+            // Account Settings Modal Button
             document.getElementById('save-account-settings-btn').addEventListener('click', saveAccountSettings);
 
             // Offcanvas Menu Buttons
             document.getElementById('offcanvas-account-settings-link').addEventListener('click', () => {
-                settingsOffcanvas.hide(); // Hide offcanvas first
+                settingsOffcanvas.hide();
                 accountSettingsModal.show();
             });
             document.getElementById('offcanvas-add-user-btn').addEventListener('click', () => {
-                settingsOffcanvas.hide(); // Hide offcanvas first
-                // Prompt for email directly or show a small input modal
+                settingsOffcanvas.hide();
                 const newUserEmail = prompt("Enter the email of the user you want to invite:");
                 if (newUserEmail) {
                     addUser(newUserEmail);
                 }
             });
             document.getElementById('offcanvas-manage-access-btn').addEventListener('click', () => {
-                settingsOffcanvas.hide(); // Hide offcanvas first
+                settingsOffcanvas.hide();
                 userManagementModal.show();
-                loadUsers(auth.currentUser.uid); // Reload users when opening manage access modal
+                loadUsers(auth.currentUser.uid);
             });
             document.getElementById('offcanvas-logout-link').addEventListener('click', logout);
         });
@@ -419,8 +560,7 @@
             if (user) {
                 if (user.emailVerified) {
                     window.showSection('app-section');
-                    loadPantry(user.uid);
-                    // No need to load users here, it's done when manage access modal opens
+                    loadPantry(user.uid); // Load pantry on initial login/refresh
                 } else {
                     window.showSection('verify-email-section');
                 }
@@ -431,9 +571,8 @@
 
         // Start Barcode Scanner
         async function startScanner() {
-            // Clear any previous scanner content
             const scannerContainer = document.querySelector('#scanner-container');
-            scannerContainer.innerHTML = '';
+            scannerContainer.innerHTML = ''; // Clear any previous scanner content
 
             Quagga.init({
                 inputStream: {
@@ -466,19 +605,18 @@
                 const response = await axios.get(`https://world.openfoodfacts.org/api/v0/product/${barcode}.json`);
                 if (response.data.status === 1) {
                     const product = response.data.product;
-                    const item = {
+                    currentItemToAdd = {
                         name: product.product_name || 'Unknown Product',
                         barcode,
                         quantity: 1,
                         image: product.image_url || ''
                     };
-                    await addItemToPantry(item);
+                    promptForItemLocation();
                 } else {
-                    // Product not found, open manual add item modal
                     alert('Product not found in database. Please add it manually.');
-                    document.getElementById('manual-name').value = ''; // Clear previous input
+                    document.getElementById('manual-name').value = '';
                     document.getElementById('manual-quantity').value = '1';
-                    document.getElementById('manual-image').value = ''; // Clear file input
+                    document.getElementById('manual-image').value = '';
                     manualAddItemModal.show();
                 }
             } catch (error) {
@@ -486,24 +624,8 @@
             }
         }
 
-        // Add Item to Pantry
-        async function addItemToPantry(item) {
-            const user = auth.currentUser;
-            if (!user) return alert('Not logged in');
-            try {
-                await addDoc(collection(db, 'pantries', user.uid, 'items'), item);
-                loadPantry(user.uid);
-                alert('Item added successfully!');
-                manualAddItemModal.hide(); // Hide modal after adding
-            } catch (error) {
-                alert('Error adding item: ' + error.message);
-            }
-        }
-
         // Add Manual Item (now called from within the modal)
         async function addManualItem() {
-            const user = auth.currentUser;
-            if (!user) return alert('Not logged in');
             const name = document.getElementById('manual-name').value;
             const quantity = parseInt(document.getElementById('manual-quantity').value) || 1;
             const imageFile = document.getElementById('manual-image').files[0];
@@ -516,35 +638,88 @@
 
             if (imageFile) {
                 try {
+                    const user = auth.currentUser;
                     const storageRef = ref(storage, `images/${user.uid}/${imageFile.name}`);
                     await uploadBytes(storageRef, imageFile);
                     imageUrl = await getDownloadURL(storageRef);
                 } catch (error) {
                     console.error("Error uploading image:", error);
                     alert('Error uploading image: ' + error.message);
-                    return; // Stop if image upload fails
+                    return;
                 }
             }
 
+            currentItemToAdd = {
+                name,
+                quantity,
+                image: imageUrl
+            };
+            manualAddItemModal.hide(); // Hide manual add modal
+            promptForItemLocation(); // Prompt for location
+        }
+
+        // Prompt for item location
+        async function promptForItemLocation() {
+            if (!auth.currentUser) {
+                alert('Not logged in.');
+                return;
+            }
+            const locationInput = document.getElementById('item-location');
+            const previousLocationsDatalist = document.getElementById('previous-locations');
+            locationInput.value = ''; // Clear previous input
+
+            // Load previous locations
             try {
-                await addDoc(collection(db, 'pantries', user.uid, 'items'), {
-                    name,
-                    quantity,
-                    image: imageUrl
+                const locationsSnapshot = await getDocs(collection(db, 'users', auth.currentUser.uid, 'locations'));
+                previousLocationsDatalist.innerHTML = '';
+                locationsSnapshot.forEach(doc => {
+                    const option = document.createElement('option');
+                    option.value = doc.id; // Location name is the doc ID
+                    previousLocationsDatalist.appendChild(option);
                 });
-                loadPantry(user.uid);
-                alert('Manual item added successfully!');
-                manualAddItemModal.hide(); // Hide modal after adding
-                // Clear form fields
-                document.getElementById('manual-name').value = '';
-                document.getElementById('manual-quantity').value = '1';
-                document.getElementById('manual-image').value = '';
             } catch (error) {
-                alert('Error adding manual item: ' + error.message);
+                console.error("Error loading previous locations:", error);
+            }
+
+            locationInputModal.show();
+        }
+
+        // Save item with location
+        async function saveItemLocation() {
+            const user = auth.currentUser;
+            if (!user || !currentItemToAdd) {
+                alert('Error: User not logged in or no item to save.');
+                return;
+            }
+
+            const location = document.getElementById('item-location').value.trim();
+            if (!location) {
+                alert('Location is required.');
+                return;
+            }
+
+            try {
+                // Add/update location in user's locations subcollection
+                await setDoc(doc(db, 'users', user.uid, 'locations', location), { lastUsed: new Date() }, { merge: true });
+
+                // Add item to pantry with location
+                await addDoc(collection(db, 'pantries', user.uid, 'items'), {
+                    ...currentItemToAdd,
+                    location: location,
+                    addedAt: new Date()
+                });
+
+                alert('Item added successfully with location!');
+                locationInputModal.hide();
+                currentItemToAdd = null; // Clear temporary item
+                loadPantry(user.uid); // Reload main pantry view
+            } catch (error) {
+                alert('Error saving item with location: ' + error.message);
+                console.error("Error saving item with location:", error);
             }
         }
 
-        // Load Pantry
+        // Load Pantry (for main app screen, not grouped)
         async function loadPantry(userId) {
             try {
                 const pantryList = document.getElementById('pantry-list');
@@ -559,18 +734,98 @@
                         li.className = 'list-group-item d-flex justify-content-between align-items-center';
                         li.innerHTML = `
                             <span>
-                                ${item.name} (Qty: ${item.quantity})
+                                ${item.name} (Qty: ${item.quantity}) ${item.location ? `[${item.location}]` : ''}
                                 ${item.image ? `<img src="${item.image}" width="50" class="rounded ms-2" alt="${item.name}">` : ''}
                             </span>
-                            <button class="btn btn-danger btn-sm" onclick="removeItem('${doc.id}', '${userId}')">Remove</button>
+                            <button class="remove-item-btn btn btn-danger btn-sm" data-item-id="${doc.id}" data-user-id="${userId}">Remove</button>
                         `;
                         pantryList.appendChild(li);
+                    });
+                    // Attach event listeners to the dynamically created remove buttons
+                    pantryList.querySelectorAll('.remove-item-btn').forEach(button => {
+                        button.addEventListener('click', (event) => {
+                            const itemId = event.target.dataset.itemId;
+                            const currentUserId = event.target.dataset.userId;
+                            removeItem(itemId, currentUserId);
+                        });
                     });
                 }
             } catch (error) {
                 alert('Error loading pantry: ' + error.message);
             }
         }
+
+        // Render Pantry Items by Location (for My Pantry Modal)
+        async function renderPantryItemsByLocation(userId, searchTerm = '') {
+            try {
+                const pantryItemsDisplay = document.getElementById('pantry-items-display');
+                pantryItemsDisplay.innerHTML = '<p class="text-center text-muted">Loading pantry items...</p>';
+
+                const querySnapshot = await getDocs(collection(db, 'pantries', userId, 'items'));
+                const itemsByLocation = {};
+                querySnapshot.forEach(doc => {
+                    const item = { id: doc.id, ...doc.data() };
+                    const location = item.location || 'Unsorted';
+                    if (!itemsByLocation[location]) {
+                        itemsByLocation[location] = [];
+                    }
+                    itemsByLocation[location].push(item);
+                });
+
+                pantryItemsDisplay.innerHTML = ''; // Clear loading message
+
+                if (Object.keys(itemsByLocation).length === 0) {
+                    pantryItemsDisplay.innerHTML = '<p class="text-center text-muted">Your pantry is empty. Add some items!</p>';
+                    return;
+                }
+
+                const filteredLocations = Object.keys(itemsByLocation).filter(location =>
+                    location.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    itemsByLocation[location].some(item => item.name.toLowerCase().includes(searchTerm.toLowerCase()))
+                ).sort(); // Sort locations alphabetically
+
+                if (filteredLocations.length === 0) {
+                    pantryItemsDisplay.innerHTML = '<p class="text-center text-muted">No matching items found for your search.</p>';
+                    return;
+                }
+
+                filteredLocations.forEach(location => {
+                    const locationGroupDiv = document.createElement('div');
+                    locationGroupDiv.className = 'pantry-location-group';
+                    locationGroupDiv.innerHTML = `<h4>${location}</h4>`;
+
+                    itemsByLocation[location].filter(item =>
+                        item.name.toLowerCase().includes(searchTerm.toLowerCase())
+                    ).forEach(item => {
+                        const itemDiv = document.createElement('div');
+                        itemDiv.className = 'pantry-item-box';
+                        itemDiv.innerHTML = `
+                            <span>
+                                ${item.image ? `<img src="${item.image}" width="40" class="rounded" alt="${item.name}">` : ''}
+                                <strong>${item.name}</strong> (Qty: ${item.quantity})
+                            </span>
+                            <button class="remove-item-btn btn btn-danger btn-sm" data-item-id="${item.id}" data-user-id="${userId}">Remove</button>
+                        `;
+                        locationGroupDiv.appendChild(itemDiv);
+                    });
+                    pantryItemsDisplay.appendChild(locationGroupDiv);
+                });
+
+                // Re-attach event listeners for remove buttons in this modal
+                pantryItemsDisplay.querySelectorAll('.remove-item-btn').forEach(button => {
+                    button.addEventListener('click', (event) => {
+                        const itemId = event.target.dataset.itemId;
+                        const currentUserId = event.target.dataset.userId;
+                        removeItem(itemId, currentUserId);
+                    });
+                });
+
+            } catch (error) {
+                alert('Error loading pantry items by location: ' + error.message);
+                console.error("Error loading pantry items by location:", error);
+            }
+        }
+
 
         // Remove Item from Pantry
         window.removeItem = async function(itemId, userId) {
@@ -579,24 +834,32 @@
             }
             try {
                 await deleteDoc(doc(db, 'pantries', userId, 'items', itemId));
-                loadPantry(userId); // Reload pantry after removal
                 alert('Item removed successfully!');
+                // Reload both pantry views
+                loadPantry(userId);
+                if (myPantryModal._isShown) { // Check if modal is open before reloading
+                    renderPantryItemsByLocation(userId, document.getElementById('pantry-search-bar').value);
+                }
             } catch (error) {
                 alert('Error removing item: ' + error.message);
             }
         };
 
 
-        // Get Recipe Suggestions
+        // Get Recipe Suggestions (now renders in recipes modal)
         async function getRecipes() {
             const user = auth.currentUser;
             if (!user) return alert('Not logged in');
+
+            const recipeResultsDisplay = document.getElementById('recipe-list'); // This was pantry-list, now recipes-modal
+            recipeResultsDisplay.innerHTML = '<p class="text-center text-muted">Finding recipes...</p>';
+
             try {
                 const querySnapshot = await getDocs(collection(db, 'pantries', user.uid, 'items'));
                 const ingredients = querySnapshot.docs.map(doc => doc.data().name).join(',');
 
                 if (!ingredients) {
-                    alert('Your pantry is empty. Add items to get recipe suggestions!');
+                    recipeResultsDisplay.innerHTML = '<li class="list-group-item text-muted">Your pantry is empty. Add items to get recipe suggestions!</li>';
                     return;
                 }
 
@@ -605,36 +868,150 @@
                 const SPOONACULAR_API_KEY = 'YOUR_SPOONACULAR_API_KEY_HERE'; // <--- IMPORTANT: Replace this!
 
                 if (SPOONACULAR_API_KEY === 'YOUR_SPOONACULAR_API_KEY_HERE') {
-                    alert('Please replace "YOUR_SPOONACULAR_API_KEY_HERE" with your actual Spoonacular API key in the JavaScript code.');
+                    recipeResultsDisplay.innerHTML = '<li class="list-group-item text-danger">Error: Please replace "YOUR_SPOONACULAR_API_KEY_HERE" with your actual Spoonacular API key.</li>';
                     return;
                 }
 
                 const response = await axios.get(`https://api.spoonacular.com/recipes/findByIngredients?ingredients=${ingredients}&apiKey=${SPOONACULAR_API_KEY}`);
-                const recipeList = document.getElementById('recipe-list');
-                recipeList.innerHTML = '';
+                recipeResultsDisplay.innerHTML = ''; // Clear loading message
+
                 if (response.data.length === 0) {
-                    recipeList.innerHTML = '<li class="list-group-item text-muted">No recipes found with your current pantry items. Try adding more!</li>';
+                    recipeResultsDisplay.innerHTML = '<li class="list-group-item text-muted">No recipes found with your current pantry items. Try adding more!</li>';
                 } else {
                     response.data.forEach(recipe => {
                         const li = document.createElement('li');
-                        li.className = 'list-group-item';
+                        li.className = 'list-group-item recipe-item-box';
                         li.innerHTML = `
-                            <strong>${recipe.title}</strong><br>
-                            <small>
-                                Used Ingredients: ${recipe.usedIngredientCount}<br>
-                                Missing Ingredients: ${recipe.missedIngredientCount}
-                            </small>
-                            <br>
-                            ${recipe.image ? `<img src="${recipe.image}" width="100" class="rounded mt-2" alt="${recipe.title}">` : ''}
+                            <div>
+                                <strong>${recipe.title}</strong><br>
+                                <small>
+                                    Used Ingredients: ${recipe.usedIngredientCount}<br>
+                                    Missing Ingredients: ${recipe.missedIngredientCount}
+                                </small>
+                            </div>
+                            ${recipe.image ? `<img src="${recipe.image}" class="rounded mt-2" alt="${recipe.title}">` : ''}
+                            <button class="btn btn-sm btn-success mt-2" data-recipe='${JSON.stringify(recipe)}'>Save Recipe</button>
                         `;
-                        recipeList.appendChild(li);
+                        recipeResultsDisplay.appendChild(li);
+                    });
+
+                    // Attach event listeners for Save Recipe buttons
+                    recipeResultsDisplay.querySelectorAll('.btn-success').forEach(button => {
+                        button.addEventListener('click', (event) => {
+                            const recipeData = JSON.parse(event.target.dataset.recipe);
+                            saveRecipe(recipeData);
+                        });
                     });
                 }
             } catch (error) {
                 console.error("Error fetching recipes:", error);
-                alert('Error fetching recipes: ' + error.message + '. Please check your Spoonacular API key and network connection.');
+                recipeResultsDisplay.innerHTML = `<li class="list-group-item text-danger">Error fetching recipes: ${error.message}. Please check your Spoonacular API key and network connection.</li>`;
             }
         }
+
+        // Save a recipe
+        async function saveRecipe(recipeData) {
+            const user = auth.currentUser;
+            if (!user) return alert('Not logged in');
+
+            try {
+                // Check if recipe already exists to prevent duplicates
+                const savedRecipesRef = collection(db, 'users', user.uid, 'saved_recipes');
+                const q = query(savedRecipesRef, where("id", "==", recipeData.id));
+                const querySnapshot = await getDocs(q);
+
+                if (!querySnapshot.empty) {
+                    alert('Recipe already saved!');
+                    return;
+                }
+
+                await addDoc(savedRecipesRef, {
+                    id: recipeData.id,
+                    title: recipeData.title,
+                    image: recipeData.image || '',
+                    usedIngredientCount: recipeData.usedIngredientCount,
+                    missedIngredientCount: recipeData.missedIngredientCount,
+                    // Store other relevant data you might need later
+                    savedAt: new Date()
+                });
+                alert('Recipe saved successfully!');
+                loadSavedRecipes(user.uid); // Reload saved recipes list
+            } catch (error) {
+                alert('Error saving recipe: ' + error.message);
+                console.error("Error saving recipe:", error);
+            }
+        }
+
+        // Load Saved Recipes
+        async function loadSavedRecipes(userId, searchTerm = '') {
+            try {
+                const savedRecipesDisplay = document.getElementById('saved-recipes-display');
+                savedRecipesDisplay.innerHTML = '<p class="text-center text-muted">Loading saved recipes...</p>';
+
+                const querySnapshot = await getDocs(collection(db, 'users', userId, 'saved_recipes'));
+                savedRecipesDisplay.innerHTML = ''; // Clear loading message
+
+                if (querySnapshot.empty) {
+                    savedRecipesDisplay.innerHTML = '<p class="text-center text-muted">No recipes saved yet.</p>';
+                } else {
+                    const filteredRecipes = querySnapshot.docs.filter(doc => {
+                        const recipe = doc.data();
+                        return recipe.title.toLowerCase().includes(searchTerm.toLowerCase());
+                    });
+
+                    if (filteredRecipes.length === 0) {
+                        savedRecipesDisplay.innerHTML = '<p class="text-center text-muted">No matching saved recipes found.</p>';
+                        return;
+                    }
+
+                    filteredRecipes.forEach(docSnapshot => {
+                        const recipe = docSnapshot.data();
+                        const li = document.createElement('div');
+                        li.className = 'list-group-item recipe-item-box';
+                        li.innerHTML = `
+                            <div>
+                                <strong>${recipe.title}</strong><br>
+                                <small>
+                                    Used Ingredients: ${recipe.usedIngredientCount}<br>
+                                    Missing Ingredients: ${recipe.missedIngredientCount}
+                                </small>
+                            </div>
+                            ${recipe.image ? `<img src="${recipe.image}" class="rounded mt-2" alt="${recipe.title}">` : ''}
+                            <button class="remove-recipe-btn btn btn-danger btn-sm mt-2" data-recipe-id="${docSnapshot.id}" data-user-id="${userId}">Remove</button>
+                        `;
+                        savedRecipesDisplay.appendChild(li);
+                    });
+
+                    // Attach event listeners for remove recipe buttons
+                    savedRecipesDisplay.querySelectorAll('.remove-recipe-btn').forEach(button => {
+                        button.addEventListener('click', (event) => {
+                            const recipeId = event.target.dataset.recipeId;
+                            const currentUserId = event.target.dataset.userId;
+                            removeSavedRecipe(recipeId, currentUserId);
+                        });
+                    });
+                }
+            } catch (error) {
+                alert('Error loading saved recipes: ' + error.message);
+                console.error("Error loading saved recipes:", error);
+            }
+        }
+
+        // Remove Saved Recipe
+        async function removeSavedRecipe(recipeId, userId) {
+            if (!confirm('Are you sure you want to remove this saved recipe?')) {
+                return;
+            }
+            try {
+                await deleteDoc(doc(db, 'users', userId, 'saved_recipes', recipeId));
+                alert('Recipe removed successfully!');
+                loadSavedRecipes(userId); // Reload the list
+            } catch (error) {
+                alert('Error removing recipe: ' + error.message);
+                console.error("Error removing saved recipe:", error);
+            }
+        }
+
 
         // Add User to Shared Pantry (Concept for email invitation)
         async function addUser(newUserEmail) {
@@ -663,6 +1040,8 @@
                 // --- REAL-WORLD EMAIL SENDING (REQUIRES FIREBASE CLOUD FUNCTION) ---
                 // In a real application, you would typically trigger a Firebase Cloud Function here.
                 // The Cloud Function would then use a service like SendGrid or Nodemailer to send the email.
+                // The 'accept' button in the email would link back to your app, potentially with a unique token
+                // that, when clicked, would update the status in Firestore and grant access.
                 // Example (conceptual, not runnable client-side):
                 // const response = await fetch('/sendInvitationEmail', {
                 //     method: 'POST',
@@ -671,8 +1050,7 @@
                 //         recipientEmail: newUserEmail,
                 //         inviterEmail: user.email,
                 //         pantryId: user.uid,
-                //         // Include a unique token for the accept link
-                //         invitationToken: 'some_unique_secure_token'
+                //         invitationDocId: docRef.id // The ID of the document just created in shared_users
                 //     })
                 // });
                 // if (response.ok) {
@@ -768,15 +1146,14 @@
             }
 
             try {
-                // You would typically save these settings to a user profile document in Firestore
-                // For example: doc(db, 'users', user.uid)
-                // For now, let's just alert and log
-                console.log("Saving settings:", {
+                // Save settings to a user profile document in Firestore
+                await setDoc(doc(db, 'users', user.uid), {
                     name: profileName,
                     photoURL: photoURL,
                     sharePantry: sharePantry
-                });
-                alert('Account settings saved! (Functionality to save to Firestore to be implemented)');
+                }, { merge: true }); // Use merge: true to update existing fields without overwriting others
+
+                alert('Account settings saved!');
                 accountSettingsModal.hide(); // Hide modal after saving
             } catch (error) {
                 alert('Error saving account settings: ' + error.message);
