@@ -129,7 +129,7 @@
             <input type="password" id="login-password" class="form-control" placeholder="Password" required>
             <button id="login-btn" class="btn btn-primary">Login</button>
             <a href="#" id="forgot-password" class="d-block mt-2 text-muted">Forgot Password?</a>
-            <button class="btn btn-secondary mt-3" onclick="showSection('welcome-section')">Back</button>
+            <button class="btn btn-secondary mt-3" id="back-from-login">Back</button>
         </div>
 
         <div id="register-section" class="card p-4" style="display: none;">
@@ -138,41 +138,41 @@
             <input type="password" id="register-password" class="form-control" placeholder="Password" required>
             <input type="password" id="register-confirm-password" class="form-control" placeholder="Confirm Password" required>
             <button id="register-btn" class="btn btn-primary">Register</button>
-            <button class="btn btn-secondary mt-3" onclick="showSection('welcome-section')">Back</button>
+            <button class="btn btn-secondary mt-3" id="back-from-register">Back</button>
         </div>
 
         <div id="verify-email-section" class="card p-4" style="display: none;">
             <p class="mb-3">Please verify your email to continue.</p>
             <button id="resend-verification" class="btn btn-primary">Resend Verification Email</button>
-            <button class="btn btn-secondary mt-3" onclick="auth.signOut(); showSection('welcome-section')">Back</button>
+            <button class="btn btn-secondary mt-3" id="back-from-verify">Back</button>
         </div>
 
         <div id="app-section" style="display: none;">
-            <button class="btn btn-secondary menu-btn" onclick="toggleMenu()">Menu</button>
+            <button class="btn btn-secondary menu-btn" id="toggle-menu-btn">Menu</button>
             <div id="menu-content" class="menu-content">
-                <a href="#" onclick="showAccountSettings()">Account Settings</a>
-                <a href="#" onclick="logout()">Log Out</a>
+                <a href="#" id="show-account-settings-link">Account Settings</a>
+                <a href="#" id="logout-link">Log Out</a>
             </div>
             <div class="card p-4">
                 <h2 class="mb-4">Pantry</h2>
-                <button class="btn btn-primary mb-3" onclick="startScanner()" data-bs-toggle="tooltip" title="Scan a barcode to add an item to your pantry">Scan Barcode</button>
+                <button class="btn btn-primary mb-3" id="scan-barcode-btn" data-bs-toggle="tooltip" title="Scan a barcode to add an item to your pantry">Scan Barcode</button>
                 <div id="scanner-container" class="mb-3"></div>
                 <h3 class="mb-3">Add Manual Item</h3>
                 <input type="text" id="manual-name" class="form-control" placeholder="Item Name">
                 <input type="number" id="manual-quantity" class="form-control" placeholder="Quantity">
                 <input type="file" id="manual-image" class="form-control" accept="image/*">
-                <button class="btn btn-primary mt-3 mb-3" onclick="addManualItem()" data-bs-toggle="tooltip" title="Add a custom item to your pantry">Add Item</button>
+                <button class="btn btn-primary mt-3 mb-3" id="add-manual-item-btn" data-bs-toggle="tooltip" title="Add a custom item to your pantry">Add Item</button>
                 <ul id="pantry-list" class="list-group mb-3"></ul>
-                <button class="btn btn-primary" onclick="getRecipes()" data-bs-toggle="tooltip" title="Get recipe suggestions based on your pantry items">Get Recipe Suggestions</button>
+                <button class="btn btn-primary" id="get-recipes-btn" data-bs-toggle="tooltip" title="Get recipe suggestions based on your pantry items">Get Recipe Suggestions</button>
                 <ul id="recipe-list" class="list-group mt-3"></ul>
             </div>
             <div class="card p-4">
                 <h2 class="mb-4">Settings</h2>
-                <button class="btn btn-primary" onclick="showUserManagement()" data-bs-toggle="tooltip" title="Manage users who can access your pantry">User Management</button>
+                <button class="btn btn-primary" id="show-user-management-btn" data-bs-toggle="tooltip" title="Manage users who can access your pantry">User Management</button>
                 <div id="user-management" style="display: none;" class="mt-3">
                     <h3 class="mb-3">Manage Users</h3>
                     <input type="email" id="new-user" class="form-control" placeholder="New User Email">
-                    <button class="btn btn-primary mt-3" onclick="addUser()" data-bs-toggle="tooltip" title="Add a user to share your pantry">Add User</button>
+                    <button class="btn btn-primary mt-3" id="add-user-btn" data-bs-toggle="tooltip" title="Add a user to share your pantry">Add User</button>
                     <ul id="user-list" class="list-group mt-3"></ul>
                 </div>
             </div>
@@ -198,7 +198,7 @@
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                        <button type="button" class="btn btn-primary" onclick="saveAccountSettings()">Save changes</button>
+                        <button type="button" class="btn btn-primary" id="save-account-settings-btn">Save changes</button>
                     </div>
                 </div>
             </div>
@@ -244,6 +244,20 @@
         // Welcome Screen Buttons
         document.getElementById('show-login').addEventListener('click', () => window.showSection('login-section'));
         document.getElementById('show-register').addEventListener('click', () => window.showSection('register-section'));
+
+        // Back buttons
+        document.getElementById('back-from-login').addEventListener('click', () => window.showSection('welcome-section'));
+        document.getElementById('back-from-register').addEventListener('click', () => window.showSection('welcome-section'));
+        document.getElementById('back-from-verify').addEventListener('click', async () => {
+            try {
+                await signOut(auth); // Use the auth object defined in the module
+                window.showSection('welcome-section');
+            } catch (error) {
+                console.error("Error signing out from verification screen:", error);
+                alert('Could not go back: ' + error.message);
+            }
+        });
+
 
         // Auth State Listener
         onAuthStateChanged(auth, user => {
@@ -316,7 +330,7 @@
         });
 
         // Start Barcode Scanner
-        window.startScanner = function() {
+        document.getElementById('scan-barcode-btn').addEventListener('click', function() {
             Quagga.init({
                 inputStream: {
                     name: "Live",
@@ -339,7 +353,7 @@
                 Quagga.stop();
                 await fetchItem(barcode);
             });
-        };
+        });
 
         // Fetch Item from Open Food Facts
         window.fetchItem = async function(barcode) {
@@ -375,7 +389,7 @@
         };
 
         // Add Manual Item
-        window.addManualItem = async function() {
+        document.getElementById('add-manual-item-btn').addEventListener('click', async function() {
             const user = auth.currentUser;
             if (!user) return alert('Not logged in');
             const name = document.getElementById('manual-name').value;
@@ -399,7 +413,7 @@
             } catch (error) {
                 alert('Error adding manual item: ' + error.message);
             }
-        };
+        });
 
         // Load Pantry
         window.loadPantry = async function(userId) {
@@ -420,7 +434,7 @@
         };
 
         // Get Recipe Suggestions
-        window.getRecipes = async function() {
+        document.getElementById('get-recipes-btn').addEventListener('click', async function() {
             const user = auth.currentUser;
             if (!user) return alert('Not logged in');
             try {
@@ -439,15 +453,15 @@
             } catch (error) {
                 alert('Error fetching recipes: ' + error.message);
             }
-        };
+        });
 
         // Show User Management
-        window.showUserManagement = function() {
+        document.getElementById('show-user-management-btn').addEventListener('click', function() {
             document.getElementById('user-management').style.display = 'block';
-        };
+        });
 
         // Add User to Shared Pantry
-        window.addUser = async function() {
+        document.getElementById('add-user-btn').addEventListener('click', async function() {
             const user = auth.currentUser;
             if (!user) return alert('Not logged in');
             const newUserEmail = document.getElementById('new-user').value;
@@ -458,7 +472,7 @@
             } catch (error) {
                 alert('Error adding user: ' + error.message);
             }
-        };
+        });
 
         // Load Shared Users
         window.loadUsers = async function(userId) {
@@ -478,31 +492,31 @@
         };
 
         // Toggle Menu
-        window.toggleMenu = function() {
+        document.getElementById('toggle-menu-btn').addEventListener('click', function() {
             const menuContent = document.getElementById('menu-content');
             menuContent.style.display = menuContent.style.display === 'block' ? 'none' : 'block';
-        };
+        });
 
         // Show Account Settings
-        window.showAccountSettings = function() {
+        document.getElementById('show-account-settings-link').addEventListener('click', function() {
             const modal = new bootstrap.Modal(document.getElementById('account-settings-modal'));
             modal.show();
-        };
+        });
 
         // Save Account Settings (Placeholder)
-        window.saveAccountSettings = function() {
+        document.getElementById('save-account-settings-btn').addEventListener('click', function() {
             alert('Settings saved! (Functionality to be implemented)');
-        };
+        });
 
         // Log Out
-        window.logout = async function() {
+        document.getElementById('logout-link').addEventListener('click', async function() {
             try {
                 await signOut(auth);
                 window.showSection('welcome-section');
             } catch (error) {
                 alert('Logout failed: ' + error.message);
             }
-        };
+        });
     </script>
 </body>
 </html>
