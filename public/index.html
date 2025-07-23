@@ -97,18 +97,32 @@
         .menu-content a:hover {
             background-color: #f1f1f1;
         }
+        #scanner-container {
+            width: 100%;
+            height: 200px; /* Adjust as needed */
+            border: 1px solid #ccc;
+            margin-bottom: 15px;
+            background-color: #f0f0f0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden; /* Important for the video stream */
+        }
+        #scanner-container video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover; /* Ensures the video covers the container */
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- Welcome Screen -->
         <div id="welcome-section" class="card text-center p-4">
             <h2 class="welcome-header mb-4">Welcome to Pantry App</h2>
             <button id="show-login" class="btn btn-primary">Login</button>
             <button id="show-register" class="btn btn-secondary mt-3">Register</button>
         </div>
 
-        <!-- Login Form -->
         <div id="login-section" class="card p-4" style="display: none;">
             <h3 class="mb-4">Login</h3>
             <input type="email" id="login-email" class="form-control" placeholder="Email" required>
@@ -118,7 +132,6 @@
             <button class="btn btn-secondary mt-3" onclick="showSection('welcome-section')">Back</button>
         </div>
 
-        <!-- Register Form -->
         <div id="register-section" class="card p-4" style="display: none;">
             <h3 class="mb-4">Register</h3>
             <input type="email" id="register-email" class="form-control" placeholder="Email" required>
@@ -128,14 +141,12 @@
             <button class="btn btn-secondary mt-3" onclick="showSection('welcome-section')">Back</button>
         </div>
 
-        <!-- Email Verification Section -->
         <div id="verify-email-section" class="card p-4" style="display: none;">
             <p class="mb-3">Please verify your email to continue.</p>
             <button id="resend-verification" class="btn btn-primary">Resend Verification Email</button>
             <button class="btn btn-secondary mt-3" onclick="auth.signOut(); showSection('welcome-section')">Back</button>
         </div>
 
-        <!-- Main App -->
         <div id="app-section" style="display: none;">
             <button class="btn btn-secondary menu-btn" onclick="toggleMenu()">Menu</button>
             <div id="menu-content" class="menu-content">
@@ -167,7 +178,6 @@
             </div>
         </div>
 
-        <!-- Account Settings Modal -->
         <div id="account-settings-modal" class="modal fade" tabindex="-1" aria-labelledby="accountSettingsLabel" aria-hidden="true">
             <div class="modal-dialog">
                 <div class="modal-content">
@@ -416,6 +426,7 @@
             try {
                 const querySnapshot = await getDocs(collection(db, 'pantries', user.uid, 'items'));
                 const ingredients = querySnapshot.docs.map(doc => doc.data().name).join(',');
+                // REMINDER: Replace 'YOUR_SPOONACULAR_API_KEY_HERE' with your actual Spoonacular API Key
                 const response = await axios.get(`https://api.spoonacular.com/recipes/findByIngredients?ingredients=${ingredients}&apiKey=YOUR_SPOONACULAR_API_KEY_HERE`);
                 const recipeList = document.getElementById('recipe-list');
                 recipeList.innerHTML = '';
