@@ -8,140 +8,144 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/quagga@0.12.1/dist/quagga.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios@1.4.0/dist/axios.min.js"></script>
-<style>
-    body {
-        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-        font-family: 'Arial', sans-serif;
-        min-height: 100vh;
-    }
-    .container {
-        max-width: 700px;
-        padding: 15px;
-    }
-    .card {
-        border: none;
-        border-radius: 15px;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-        margin-bottom: 20px;
-        transition: transform 0.2s;
-    }
-    .card:hover {
-        transform: translateY(-5px);
-    }
-    .btn {
-        border-radius: 25px;
-        padding: 10px 20px;
-        font-weight: bold;
-    }
-    .btn-primary {
-        background-color: #007bff;
-        border: none;
-    }
-    .btn-primary:hover {
-        background-color: #0056b3;
-    }
-    .btn-secondary {
-        background-color: #6c757d;
-        border: none;
-    }
-    .btn-secondary:hover {
-        background-color: #5a6268;
-    }
-    .form-control {
-        border-radius: 10px;
-        margin-bottom: 15px;
-    }
-    h2, h3 {
-        color: #333;
-        font-weight: 600;
-    }
-    .welcome-header {
-        font-size: 2rem;
-        color: #007bff;
-        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
-    }
-    @media (max-width: 768px) {
+    <style>
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            font-family: 'Arial', sans-serif;
+            min-height: 100vh;
+        }
         .container {
-            padding: 10px;
+            max-width: 700px;
+            padding: 15px;
         }
         .card {
-            margin-bottom: 15px;
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            transition: transform 0.2s;
+        }
+        .card:hover {
+            transform: translateY(-5px);
         }
         .btn {
-            width: 100%;
-            margin-bottom: 10px;
+            border-radius: 25px;
+            padding: 10px 20px;
+            font-weight: bold;
         }
-    }
-    .menu-btn {
-        position: absolute;
-        top: 10px;
-        right: 10px;
-    }
-    .menu-content {
-        display: none;
-        position: absolute;
-        top: 50px;
-        right: 10px;
-        background-color: #fff;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        border-radius: 10px;
-        padding: 10px;
-        z-index: 1000;
-    }
-    .menu-content a {
-        display: block;
-        padding: 5px 10px;
-        color: #333;
-        text-decoration: none;
-    }
-    .menu-content a:hover {
-        background-color: #f1f1f1;
-    }
+        .btn-primary {
+            background-color: #007bff;
+            border: none;
+        }
+        .btn-primary:hover {
+            background-color: #0056b3;
+        }
+        .btn-secondary {
+            background-color: #6c757d;
+            border: none;
+        }
+        .btn-secondary:hover {
+            background-color: #5a6268;
+        }
+        .form-control {
+            border-radius: 10px;
+            margin-bottom: 15px;
+        }
+        h2, h3 {
+            color: #333;
+            font-weight: 600;
+        }
+        .welcome-header {
+            font-size: 2rem;
+            color: #007bff;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+        }
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            .card {
+                margin-bottom: 15px;
+            }
+            .btn {
+                width: 100%;
+                margin-bottom: 10px;
+            }
+        }
+        /* Hamburger icon styling */
+        .hamburger-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: none;
+            border: none;
+            font-size: 2rem;
+            color: #007bff;
+            cursor: pointer;
+            z-index: 1050; /* Above other content, below modal */
+        }
+        .offcanvas-header {
+            border-bottom: 1px solid #eee;
+        }
+        .offcanvas-body .list-group-item {
+            cursor: pointer;
+        }
+        .offcanvas-body .list-group-item:hover {
+            background-color: #f8f9fa;
+        }
 
-    /* --- Scanner Container and Video Styling Enhancements --- */
-    #scanner-container {
-        width: 100%;
-        height: 250px; /* Slightly increased height for better view */
-        border: 1px solid #ccc;
-        margin-bottom: 15px;
-        background-color: #f0f0f0;
-        overflow: hidden; /* Important for containing absolutely positioned children */
-        position: relative; /* Needed for absolute positioning of children */
-        display: flex; /* Helps in centering content if flex items are used */
-        justify-content: center; /* Centers horizontally if using flex */
-        align-items: center; /* Centers vertically if using flex */
-    }
+        #scanner-container {
+            width: 100%;
+            height: 250px; /* Slightly increased height for better view */
+            border: 1px solid #ccc;
+            margin-bottom: 15px;
+            background-color: #f0f0f0;
+            overflow: hidden; /* Important for containing absolutely positioned children */
+            position: relative; /* Needed for absolute positioning of children */
+            display: flex; /* Helps in centering content if flex items are used */
+            justify-content: center; /* Centers horizontally if using flex */
+            align-items: center; /* Centers vertically if using flex */
+        }
 
-    /* Styles for the video and canvas elements generated by QuaggaJS */
-    #scanner-container video,
-    #scanner-container canvas {
-        position: absolute; /* Position relative to #scanner-container */
-        top: 50%; /* Start from the middle vertically */
-        left: 50%; /* Start from the middle horizontally */
-        transform: translate(-50%, -50%); /* Move back by half its own width/height to perfectly center */
-        width: 100%; /* Ensure it takes full width of container */
-        height: 100%; /* Ensure it takes full height of container */
-        object-fit: cover; /* Important: Covers the area, cropping if aspect ratios differ */
-    }
+        /* Styles for the video and canvas elements generated by QuaggaJS */
+        #scanner-container video,
+        #scanner-container canvas {
+            position: absolute; /* Position relative to #scanner-container */
+            top: 50%; /* Start from the middle vertically */
+            left: 50%; /* Start from the middle horizontally */
+            transform: translate(-50%, -50%); /* Move back by half its own width/height to perfectly center */
+            width: 100%; /* Ensure it takes full width of container */
+            height: 100%; /* Ensure it takes full height of container */
+            object-fit: cover; /* Important: Covers the area, cropping if aspect ratios differ */
+        }
 
-    /* You might need to add a specific z-index if the canvas overlays the video incorrectly */
-    #scanner-container canvas.drawingBuffer {
-        position: absolute;
-        top: 0;
-        left: 0;
-        z-index: 2; /* Ensure drawing buffer is on top of the video */
-    }
-
-</style>
+        /* You might need to add a specific z-index if the canvas overlays the video incorrectly */
+        #scanner-container canvas.drawingBuffer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 2; /* Ensure drawing buffer is on top of the video */
+        }
+        .remove-user-btn {
+            background: none;
+            border: none;
+            color: red;
+            font-weight: bold;
+            margin-left: 10px;
+            cursor: pointer;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
+        <!-- Welcome Screen -->
         <div id="welcome-section" class="card text-center p-4">
             <h2 class="welcome-header mb-4">Welcome to Pantry App</h2>
             <button id="show-login" class="btn btn-primary">Login</button>
             <button id="show-register" class="btn btn-secondary mt-3">Register</button>
         </div>
 
+        <!-- Login Form -->
         <div id="login-section" class="card p-4" style="display: none;">
             <h3 class="mb-4">Login</h3>
             <input type="email" id="login-email" class="form-control" placeholder="Email" required>
@@ -151,6 +155,7 @@
             <button class="btn btn-secondary mt-3" id="back-from-login">Back</button>
         </div>
 
+        <!-- Register Form -->
         <div id="register-section" class="card p-4" style="display: none;">
             <h3 class="mb-4">Register</h3>
             <input type="email" id="register-email" class="form-control" placeholder="Email" required>
@@ -160,43 +165,52 @@
             <button class="btn btn-secondary mt-3" id="back-from-register">Back</button>
         </div>
 
+        <!-- Email Verification Section -->
         <div id="verify-email-section" class="card p-4" style="display: none;">
             <p class="mb-3">Please verify your email to continue.</p>
             <button id="resend-verification" class="btn btn-primary">Resend Verification Email</button>
             <button class="btn btn-secondary mt-3" id="back-from-verify">Back</button>
         </div>
 
+        <!-- Main App -->
         <div id="app-section" style="display: none;">
-            <button class="btn btn-secondary menu-btn" id="toggle-menu-btn">Menu</button>
-            <div id="menu-content" class="menu-content">
-                <a href="#" id="show-account-settings-link">Account Settings</a>
-                <a href="#" id="logout-link">Log Out</a>
-            </div>
+            <!-- Hamburger Icon for Settings -->
+            <button class="hamburger-btn" type="button" data-bs-toggle="offcanvas" data-bs-target="#settings-offcanvas" aria-controls="settings-offcanvas">&#9776;</button>
+
             <div class="card p-4">
                 <h2 class="mb-4">Pantry</h2>
                 <button class="btn btn-primary mb-3" id="scan-barcode-btn" data-bs-toggle="tooltip" title="Scan a barcode to add an item to your pantry">Scan Barcode</button>
                 <div id="scanner-container" class="mb-3"></div>
-                <h3 class="mb-3">Add Manual Item</h3>
-                <input type="text" id="manual-name" class="form-control" placeholder="Item Name">
-                <input type="number" id="manual-quantity" class="form-control" placeholder="Quantity">
-                <input type="file" id="manual-image" class="form-control" accept="image/*">
-                <button class="btn btn-primary mt-3 mb-3" id="add-manual-item-btn" data-bs-toggle="tooltip" title="Add a custom item to your pantry">Add Item</button>
+                <!-- New button to open manual add item modal -->
+                <button class="btn btn-secondary mb-3" id="show-manual-add-modal-btn" data-bs-toggle="tooltip" title="Add an item to your pantry manually">Add Item Manually</button>
                 <ul id="pantry-list" class="list-group mb-3"></ul>
                 <button class="btn btn-primary" id="get-recipes-btn" data-bs-toggle="tooltip" title="Get recipe suggestions based on your pantry items">Get Recipe Suggestions</button>
                 <ul id="recipe-list" class="list-group mt-3"></ul>
             </div>
-            <div class="card p-4">
-                <h2 class="mb-4">Settings</h2>
-                <button class="btn btn-primary" id="show-user-management-btn" data-bs-toggle="tooltip" title="Manage users who can access your pantry">User Management</button>
-                <div id="user-management" style="display: none;" class="mt-3">
-                    <h3 class="mb-3">Manage Users</h3>
-                    <input type="email" id="new-user" class="form-control" placeholder="New User Email">
-                    <button class="btn btn-primary mt-3" id="add-user-btn" data-bs-toggle="tooltip" title="Add a user to share your pantry">Add User</button>
-                    <ul id="user-list" class="list-group mt-3"></ul>
+        </div>
+
+        <!-- Manual Add Item Modal -->
+        <div id="manual-add-item-modal" class="modal fade" tabindex="-1" aria-labelledby="manualAddItemLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="manualAddItemLabel">Add Item Manually</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="text" id="manual-name" class="form-control" placeholder="Item Name" required>
+                        <input type="number" id="manual-quantity" class="form-control" placeholder="Quantity" value="1" min="1" required>
+                        <input type="file" id="manual-image" class="form-control" accept="image/*">
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-primary" id="add-manual-item-btn-modal">Add Item</button>
+                    </div>
                 </div>
             </div>
         </div>
 
+        <!-- Account Settings Modal -->
         <div id="account-settings-modal" class="modal fade" tabindex="-1" aria-labelledby="accountSettingsLabel" aria-hidden="true">
             <div class="modal-dialog">
                 <div class="modal-content">
@@ -222,12 +236,48 @@
                 </div>
             </div>
         </div>
+
+        <!-- User Management Modal (for managing existing users) -->
+        <div id="user-management-modal" class="modal fade" tabindex="-1" aria-labelledby="userManagementLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="userManagementLabel">Manage Pantry Access</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <h4 class="mb-3">Users with Access</h4>
+                        <ul id="user-list" class="list-group mb-3"></ul>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Offcanvas (Right Panel) -->
+        <div class="offcanvas offcanvas-end" tabindex="-1" id="settings-offcanvas" aria-labelledby="settingsOffcanvasLabel">
+            <div class="offcanvas-header">
+                <h5 class="offcanvas-title" id="settingsOffcanvasLabel">Settings</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+            </div>
+            <div class="offcanvas-body">
+                <div class="list-group">
+                    <button type="button" class="list-group-item list-group-item-action" id="offcanvas-account-settings-link">Account Settings</button>
+                    <button type="button" class="list-group-item list-group-item-action" id="offcanvas-add-user-btn">Add User</button>
+                    <button type="button" class="list-group-item list-group-item-action" id="offcanvas-manage-access-btn">Manage Access</button>
+                    <button type="button" class="list-group-item list-group-item-action text-danger" id="offcanvas-logout-link">Log Out</button>
+                </div>
+            </div>
+        </div>
+
     </div>
 
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
         import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendEmailVerification, sendPasswordResetEmail, signOut } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-        import { getFirestore, collection, getDocs, addDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+        import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
         import { getStorage, ref, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js';
 
         // Replace with your actual Firebase configuration
@@ -245,6 +295,12 @@
         const db = getFirestore(app);
         const storage = getStorage(app);
 
+        // Global variables for modals, so we can control them from functions
+        let manualAddItemModal;
+        let accountSettingsModal;
+        let userManagementModal;
+        let settingsOffcanvas;
+
         // Show/Hide Sections - Attached to window for global access
         window.showSection = function(sectionId) {
             ['welcome-section', 'login-section', 'register-section', 'verify-email-section', 'app-section'].forEach(id => {
@@ -252,31 +308,111 @@
             });
         };
 
-        // Initialize Tooltips
+        // Initialize Modals and Offcanvas
         document.addEventListener('DOMContentLoaded', function() {
+            manualAddItemModal = new bootstrap.Modal(document.getElementById('manual-add-item-modal'));
+            accountSettingsModal = new bootstrap.Modal(document.getElementById('account-settings-modal'));
+            userManagementModal = new bootstrap.Modal(document.getElementById('user-management-modal'));
+            settingsOffcanvas = new bootstrap.Offcanvas(document.getElementById('settings-offcanvas'));
+
+            // Initialize Tooltips
             var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
             tooltipTriggerList.map(function (tooltipTriggerEl) {
                 return new bootstrap.Tooltip(tooltipTriggerEl);
             });
+
+            // Event Listeners for UI interaction
+            document.getElementById('show-login').addEventListener('click', () => window.showSection('login-section'));
+            document.getElementById('show-register').addEventListener('click', () => window.showSection('register-section'));
+            document.getElementById('back-from-login').addEventListener('click', () => window.showSection('welcome-section'));
+            document.getElementById('back-from-register').addEventListener('click', () => window.showSection('welcome-section'));
+            document.getElementById('back-from-verify').addEventListener('click', async () => {
+                try {
+                    await signOut(auth);
+                    window.showSection('welcome-section');
+                } catch (error) {
+                    console.error("Error signing out from verification screen:", error);
+                    alert('Could not go back: ' + error.message);
+                }
+            });
+
+            document.getElementById('login-btn').addEventListener('click', async () => {
+                const email = document.getElementById('login-email').value;
+                const password = document.getElementById('login-password').value;
+                try {
+                    await signInWithEmailAndPassword(auth, email, password);
+                } catch (error) {
+                    alert('Login failed: ' + error.message);
+                }
+            });
+
+            document.getElementById('register-btn').addEventListener('click', async () => {
+                const email = document.getElementById('register-email').value;
+                const password = document.getElementById('register-password').value;
+                const confirmPassword = document.getElementById('register-confirm-password').value;
+                if (password !== confirmPassword) {
+                    alert('Passwords do not match');
+                    return;
+                }
+                try {
+                    await createUserWithEmailAndPassword(auth, email, password);
+                    await sendEmailVerification(auth.currentUser);
+                    alert('Verification email sent. Please check your inbox.');
+                    window.showSection('verify-email-section');
+                } catch (error) {
+                    alert('Registration failed: ' + error.message);
+                }
+            });
+
+            document.getElementById('resend-verification').addEventListener('click', async () => {
+                try {
+                    await sendEmailVerification(auth.currentUser);
+                    alert('Verification email resent. Please check your inbox.');
+                } catch (error) {
+                    alert('Failed to resend verification email: ' + error.message);
+                }
+            });
+
+            document.getElementById('forgot-password').addEventListener('click', async () => {
+                const email = document.getElementById('login-email').value;
+                if (!email) {
+                    alert('Please enter your email to reset password');
+                    return;
+                }
+                try {
+                    await sendPasswordResetEmail(auth, email);
+                    alert('Password reset email sent. Please check your inbox.');
+                } catch (error) {
+                    alert('Failed to send password reset email: ' + error.message);
+                }
+            });
+
+            document.getElementById('scan-barcode-btn').addEventListener('click', startScanner);
+            document.getElementById('show-manual-add-modal-btn').addEventListener('click', () => manualAddItemModal.show());
+            document.getElementById('add-manual-item-btn-modal').addEventListener('click', addManualItem); // This is the button inside the modal
+            document.getElementById('get-recipes-btn').addEventListener('click', getRecipes);
+            document.getElementById('save-account-settings-btn').addEventListener('click', saveAccountSettings);
+
+            // Offcanvas Menu Buttons
+            document.getElementById('offcanvas-account-settings-link').addEventListener('click', () => {
+                settingsOffcanvas.hide(); // Hide offcanvas first
+                accountSettingsModal.show();
+            });
+            document.getElementById('offcanvas-add-user-btn').addEventListener('click', () => {
+                settingsOffcanvas.hide(); // Hide offcanvas first
+                // Prompt for email directly or show a small input modal
+                const newUserEmail = prompt("Enter the email of the user you want to invite:");
+                if (newUserEmail) {
+                    addUser(newUserEmail);
+                }
+            });
+            document.getElementById('offcanvas-manage-access-btn').addEventListener('click', () => {
+                settingsOffcanvas.hide(); // Hide offcanvas first
+                userManagementModal.show();
+                loadUsers(auth.currentUser.uid); // Reload users when opening manage access modal
+            });
+            document.getElementById('offcanvas-logout-link').addEventListener('click', logout);
         });
-
-        // Welcome Screen Buttons
-        document.getElementById('show-login').addEventListener('click', () => window.showSection('login-section'));
-        document.getElementById('show-register').addEventListener('click', () => window.showSection('register-section'));
-
-        // Back buttons
-        document.getElementById('back-from-login').addEventListener('click', () => window.showSection('welcome-section'));
-        document.getElementById('back-from-register').addEventListener('click', () => window.showSection('welcome-section'));
-        document.getElementById('back-from-verify').addEventListener('click', async () => {
-            try {
-                await signOut(auth); // Use the auth object defined in the module
-                window.showSection('welcome-section');
-            } catch (error) {
-                console.error("Error signing out from verification screen:", error);
-                alert('Could not go back: ' + error.message);
-            }
-        });
-
 
         // Auth State Listener
         onAuthStateChanged(auth, user => {
@@ -284,7 +420,7 @@
                 if (user.emailVerified) {
                     window.showSection('app-section');
                     loadPantry(user.uid);
-                    loadUsers(user.uid);
+                    // No need to load users here, it's done when manage access modal opens
                 } else {
                     window.showSection('verify-email-section');
                 }
@@ -293,68 +429,17 @@
             }
         });
 
-        // Login
-        document.getElementById('login-btn').addEventListener('click', async () => {
-            const email = document.getElementById('login-email').value;
-            const password = document.getElementById('login-password').value;
-            try {
-                await signInWithEmailAndPassword(auth, email, password);
-            } catch (error) {
-                alert('Login failed: ' + error.message);
-            }
-        });
-
-        // Register
-        document.getElementById('register-btn').addEventListener('click', async () => {
-            const email = document.getElementById('register-email').value;
-            const password = document.getElementById('register-password').value;
-            const confirmPassword = document.getElementById('register-confirm-password').value;
-            if (password !== confirmPassword) {
-                alert('Passwords do not match');
-                return;
-            }
-            try {
-                await createUserWithEmailAndPassword(auth, email, password);
-                await sendEmailVerification(auth.currentUser);
-                alert('Verification email sent. Please check your inbox.');
-                window.showSection('verify-email-section');
-            } catch (error) {
-                alert('Registration failed: ' + error.message);
-            }
-        });
-
-        // Resend Verification Email
-        document.getElementById('resend-verification').addEventListener('click', async () => {
-            try {
-                await sendEmailVerification(auth.currentUser);
-                alert('Verification email resent. Please check your inbox.');
-            } catch (error) {
-                alert('Failed to resend verification email: ' + error.message);
-            }
-        });
-
-        // Forgot Password
-        document.getElementById('forgot-password').addEventListener('click', async () => {
-            const email = document.getElementById('login-email').value;
-            if (!email) {
-                alert('Please enter your email to reset password');
-                return;
-            }
-            try {
-                await sendPasswordResetEmail(auth, email);
-                alert('Password reset email sent. Please check your inbox.');
-            } catch (error) {
-                alert('Failed to send password reset email: ' + error.message);
-            }
-        });
-
         // Start Barcode Scanner
-        document.getElementById('scan-barcode-btn').addEventListener('click', function() {
+        async function startScanner() {
+            // Clear any previous scanner content
+            const scannerContainer = document.querySelector('#scanner-container');
+            scannerContainer.innerHTML = '';
+
             Quagga.init({
                 inputStream: {
                     name: "Live",
                     type: "LiveStream",
-                    target: document.querySelector('#scanner-container'),
+                    target: scannerContainer,
                     constraints: { facingMode: "environment" }
                 },
                 decoder: { readers: ["ean_reader", "upc_reader"] }
@@ -369,13 +454,14 @@
 
             Quagga.onDetected(async (data) => {
                 const barcode = data.codeResult.code;
-                Quagga.stop();
+                Quagga.stop(); // Stop scanner immediately after detection
+                scannerContainer.innerHTML = ''; // Clear scanner view
                 await fetchItem(barcode);
             });
-        });
+        }
 
         // Fetch Item from Open Food Facts
-        window.fetchItem = async function(barcode) {
+        async function fetchItem(barcode) {
             try {
                 const response = await axios.get(`https://world.openfoodfacts.org/api/v0/product/${barcode}.json`);
                 if (response.data.status === 1) {
@@ -388,38 +474,56 @@
                     };
                     await addItemToPantry(item);
                 } else {
-                    alert('Product not found in database');
+                    // Product not found, open manual add item modal
+                    alert('Product not found in database. Please add it manually.');
+                    document.getElementById('manual-name').value = ''; // Clear previous input
+                    document.getElementById('manual-quantity').value = '1';
+                    document.getElementById('manual-image').value = ''; // Clear file input
+                    manualAddItemModal.show();
                 }
             } catch (error) {
                 alert('Error fetching product: ' + error.message);
             }
-        };
+        }
 
         // Add Item to Pantry
-        window.addItemToPantry = async function(item) {
+        async function addItemToPantry(item) {
             const user = auth.currentUser;
             if (!user) return alert('Not logged in');
             try {
                 await addDoc(collection(db, 'pantries', user.uid, 'items'), item);
                 loadPantry(user.uid);
+                alert('Item added successfully!');
+                manualAddItemModal.hide(); // Hide modal after adding
             } catch (error) {
                 alert('Error adding item: ' + error.message);
             }
-        };
+        }
 
-        // Add Manual Item
-        document.getElementById('add-manual-item-btn').addEventListener('click', async function() {
+        // Add Manual Item (now called from within the modal)
+        async function addManualItem() {
             const user = auth.currentUser;
             if (!user) return alert('Not logged in');
             const name = document.getElementById('manual-name').value;
             const quantity = parseInt(document.getElementById('manual-quantity').value) || 1;
-            const image = document.getElementById('manual-image').files[0];
+            const imageFile = document.getElementById('manual-image').files[0];
             let imageUrl = '';
 
-            if (image) {
-                const storageRef = ref(storage, `images/${user.uid}/${image.name}`);
-                await uploadBytes(storageRef, image);
-                imageUrl = await getDownloadURL(storageRef);
+            if (!name) {
+                alert('Item name is required.');
+                return;
+            }
+
+            if (imageFile) {
+                try {
+                    const storageRef = ref(storage, `images/${user.uid}/${imageFile.name}`);
+                    await uploadBytes(storageRef, imageFile);
+                    imageUrl = await getDownloadURL(storageRef);
+                } catch (error) {
+                    console.error("Error uploading image:", error);
+                    alert('Error uploading image: ' + error.message);
+                    return; // Stop if image upload fails
+                }
             }
 
             try {
@@ -429,113 +533,268 @@
                     image: imageUrl
                 });
                 loadPantry(user.uid);
+                alert('Manual item added successfully!');
+                manualAddItemModal.hide(); // Hide modal after adding
+                // Clear form fields
+                document.getElementById('manual-name').value = '';
+                document.getElementById('manual-quantity').value = '1';
+                document.getElementById('manual-image').value = '';
             } catch (error) {
                 alert('Error adding manual item: ' + error.message);
             }
-        });
+        }
 
         // Load Pantry
-        window.loadPantry = async function(userId) {
+        async function loadPantry(userId) {
             try {
                 const pantryList = document.getElementById('pantry-list');
                 pantryList.innerHTML = '';
                 const querySnapshot = await getDocs(collection(db, 'pantries', userId, 'items'));
-                querySnapshot.forEach(doc => {
-                    const item = doc.data();
-                    const li = document.createElement('li');
-                    li.className = 'list-group-item';
-                    li.innerHTML = `${item.name} (Qty: ${item.quantity}) ${item.image ? `<img src="${item.image}" width="50" class="rounded">` : ''}`;
-                    pantryList.appendChild(li);
-                });
+                if (querySnapshot.empty) {
+                    pantryList.innerHTML = '<li class="list-group-item text-muted">Your pantry is empty. Add some items!</li>';
+                } else {
+                    querySnapshot.forEach(doc => {
+                        const item = doc.data();
+                        const li = document.createElement('li');
+                        li.className = 'list-group-item d-flex justify-content-between align-items-center';
+                        li.innerHTML = `
+                            <span>
+                                ${item.name} (Qty: ${item.quantity})
+                                ${item.image ? `<img src="${item.image}" width="50" class="rounded ms-2" alt="${item.name}">` : ''}
+                            </span>
+                            <button class="btn btn-danger btn-sm" onclick="removeItem('${doc.id}', '${userId}')">Remove</button>
+                        `;
+                        pantryList.appendChild(li);
+                    });
+                }
             } catch (error) {
                 alert('Error loading pantry: ' + error.message);
             }
+        }
+
+        // Remove Item from Pantry
+        window.removeItem = async function(itemId, userId) {
+            if (!confirm('Are you sure you want to remove this item?')) {
+                return;
+            }
+            try {
+                await deleteDoc(doc(db, 'pantries', userId, 'items', itemId));
+                loadPantry(userId); // Reload pantry after removal
+                alert('Item removed successfully!');
+            } catch (error) {
+                alert('Error removing item: ' + error.message);
+            }
         };
 
+
         // Get Recipe Suggestions
-        document.getElementById('get-recipes-btn').addEventListener('click', async function() {
+        async function getRecipes() {
             const user = auth.currentUser;
             if (!user) return alert('Not logged in');
             try {
                 const querySnapshot = await getDocs(collection(db, 'pantries', user.uid, 'items'));
                 const ingredients = querySnapshot.docs.map(doc => doc.data().name).join(',');
+
+                if (!ingredients) {
+                    alert('Your pantry is empty. Add items to get recipe suggestions!');
+                    return;
+                }
+
                 // REMINDER: Replace 'YOUR_SPOONACULAR_API_KEY_HERE' with your actual Spoonacular API Key
-                const response = await axios.get(`https://api.spoonacular.com/recipes/findByIngredients?ingredients=${ingredients}&apiKey=YOUR_SPOONACULAR_API_KEY_HERE`);
+                // Get your API key from https://spoonacular.com/food-api
+                const SPOONACULAR_API_KEY = 'YOUR_SPOONACULAR_API_KEY_HERE'; // <--- IMPORTANT: Replace this!
+
+                if (SPOONACULAR_API_KEY === 'YOUR_SPOONACULAR_API_KEY_HERE') {
+                    alert('Please replace "YOUR_SPOONACULAR_API_KEY_HERE" with your actual Spoonacular API key in the JavaScript code.');
+                    return;
+                }
+
+                const response = await axios.get(`https://api.spoonacular.com/recipes/findByIngredients?ingredients=${ingredients}&apiKey=${SPOONACULAR_API_KEY}`);
                 const recipeList = document.getElementById('recipe-list');
                 recipeList.innerHTML = '';
-                response.data.forEach(recipe => {
-                    const li = document.createElement('li');
-                    li.className = 'list-group-item';
-                    li.innerHTML = `${recipe.title} (Matches: ${recipe.usedIngredientCount}/${recipe.usedIngredientCount + recipe.missedIngredientCount})`;
-                    recipeList.appendChild(li);
-                });
+                if (response.data.length === 0) {
+                    recipeList.innerHTML = '<li class="list-group-item text-muted">No recipes found with your current pantry items. Try adding more!</li>';
+                } else {
+                    response.data.forEach(recipe => {
+                        const li = document.createElement('li');
+                        li.className = 'list-group-item';
+                        li.innerHTML = `
+                            <strong>${recipe.title}</strong><br>
+                            <small>
+                                Used Ingredients: ${recipe.usedIngredientCount}<br>
+                                Missing Ingredients: ${recipe.missedIngredientCount}
+                            </small>
+                            <br>
+                            ${recipe.image ? `<img src="${recipe.image}" width="100" class="rounded mt-2" alt="${recipe.title}">` : ''}
+                        `;
+                        recipeList.appendChild(li);
+                    });
+                }
             } catch (error) {
-                alert('Error fetching recipes: ' + error.message);
+                console.error("Error fetching recipes:", error);
+                alert('Error fetching recipes: ' + error.message + '. Please check your Spoonacular API key and network connection.');
             }
-        });
+        }
 
-        // Show User Management
-        document.getElementById('show-user-management-btn').addEventListener('click', function() {
-            document.getElementById('user-management').style.display = 'block';
-        });
-
-        // Add User to Shared Pantry
-        document.getElementById('add-user-btn').addEventListener('click', async function() {
+        // Add User to Shared Pantry (Concept for email invitation)
+        async function addUser(newUserEmail) {
             const user = auth.currentUser;
             if (!user) return alert('Not logged in');
-            const newUserEmail = document.getElementById('new-user').value;
+
+            if (!newUserEmail || !newUserEmail.includes('@')) {
+                alert('Please enter a valid email address.');
+                return;
+            }
+
             try {
-                await addDoc(collection(db, 'pantries', user.uid, 'shared_users'), { email: newUserEmail });
-                alert('User added successfully');
-                loadUsers(user.uid);
+                // Add the user's email to the inviting user's shared_users subcollection
+                // This record will signify an invitation has been sent/is pending
+                await addDoc(collection(db, 'pantries', user.uid, 'shared_users'), {
+                    email: newUserEmail,
+                    status: 'pending', // Status can be 'pending', 'accepted', 'rejected'
+                    invitedBy: user.email, // Store who invited them
+                    timestamp: new Date()
+                });
+
+                alert(`Invitation sent to ${newUserEmail}! (In a real app, this would trigger an email via a Cloud Function)`);
+                loadUsers(user.uid); // Reload the list of shared users
+
+                /*
+                // --- REAL-WORLD EMAIL SENDING (REQUIRES FIREBASE CLOUD FUNCTION) ---
+                // In a real application, you would typically trigger a Firebase Cloud Function here.
+                // The Cloud Function would then use a service like SendGrid or Nodemailer to send the email.
+                // Example (conceptual, not runnable client-side):
+                // const response = await fetch('/sendInvitationEmail', {
+                //     method: 'POST',
+                //     headers: { 'Content-Type': 'application/json' },
+                //     body: JSON.stringify({
+                //         recipientEmail: newUserEmail,
+                //         inviterEmail: user.email,
+                //         pantryId: user.uid,
+                //         // Include a unique token for the accept link
+                //         invitationToken: 'some_unique_secure_token'
+                //     })
+                // });
+                // if (response.ok) {
+                //     alert('Invitation sent successfully!');
+                // } else {
+                //     alert('Failed to send invitation.');
+                // }
+                // -------------------------------------------------------------------
+                */
+
             } catch (error) {
                 alert('Error adding user: ' + error.message);
+                console.error("Error adding user to shared_users:", error);
             }
-        });
+        }
 
-        // Load Shared Users
-        window.loadUsers = async function(userId) {
+        // Load Shared Users (for Manage Access Modal)
+        async function loadUsers(userId) {
             try {
                 const userList = document.getElementById('user-list');
                 userList.innerHTML = '';
                 const querySnapshot = await getDocs(collection(db, 'pantries', userId, 'shared_users'));
-                querySnapshot.forEach(doc => {
-                    const li = document.createElement('li');
-                    li.className = 'list-group-item';
-                    li.textContent = doc.data().email;
-                    userList.appendChild(li);
-                });
+                if (querySnapshot.empty) {
+                    userList.innerHTML = '<li class="list-group-item text-muted">No users have been invited yet.</li>';
+                } else {
+                    querySnapshot.forEach(docSnapshot => {
+                        const userData = docSnapshot.data();
+                        const li = document.createElement('li');
+                        li.className = 'list-group-item d-flex justify-content-between align-items-center';
+                        li.innerHTML = `
+                            <span>${userData.email} (${userData.status})</span>
+                            <button class="remove-user-btn" data-doc-id="${docSnapshot.id}" data-user-id="${userId}">
+                                &times; <!-- Red X icon -->
+                            </button>
+                        `;
+                        userList.appendChild(li);
+                    });
+
+                    // Attach event listeners to the dynamically created remove buttons
+                    userList.querySelectorAll('.remove-user-btn').forEach(button => {
+                        button.addEventListener('click', (event) => {
+                            const docId = event.target.dataset.docId;
+                            const currentUserId = event.target.dataset.userId;
+                            removeSharedUser(docId, currentUserId);
+                        });
+                    });
+                }
             } catch (error) {
                 alert('Error loading users: ' + error.message);
+                console.error("Error loading shared users:", error);
             }
-        };
+        }
 
-        // Toggle Menu
-        document.getElementById('toggle-menu-btn').addEventListener('click', function() {
-            const menuContent = document.getElementById('menu-content');
-            menuContent.style.display = menuContent.style.display === 'block' ? 'none' : 'block';
-        });
-
-        // Show Account Settings
-        document.getElementById('show-account-settings-link').addEventListener('click', function() {
-            const modal = new bootstrap.Modal(document.getElementById('account-settings-modal'));
-            modal.show();
-        });
+        // Remove Shared User
+        async function removeSharedUser(docId, userId) {
+            if (!confirm('Are you sure you want to remove this user\'s access?')) {
+                return;
+            }
+            try {
+                await deleteDoc(doc(db, 'pantries', userId, 'shared_users', docId));
+                alert('User access removed successfully!');
+                loadUsers(userId); // Reload the list
+            } catch (error) {
+                alert('Error removing user access: ' + error.message);
+                console.error("Error removing shared user:", error);
+            }
+        }
 
         // Save Account Settings (Placeholder)
-        document.getElementById('save-account-settings-btn').addEventListener('click', function() {
-            alert('Settings saved! (Functionality to be implemented)');
-        });
+        async function saveAccountSettings() {
+            const user = auth.currentUser;
+            if (!user) {
+                alert('Not logged in.');
+                return;
+            }
+
+            const profileName = document.getElementById('profile-name').value;
+            const profilePictureFile = document.getElementById('profile-picture').files[0];
+            const sharePantry = document.getElementById('share-pantry').checked;
+
+            let photoURL = user.photoURL; // Default to existing photo URL
+
+            if (profilePictureFile) {
+                try {
+                    const storageRef = ref(storage, `profile_pictures/${user.uid}/${profilePictureFile.name}`);
+                    await uploadBytes(storageRef, profilePictureFile);
+                    photoURL = await getDownloadURL(storageRef);
+                    alert('Profile picture uploaded!');
+                } catch (error) {
+                    console.error("Error uploading profile picture:", error);
+                    alert('Failed to upload profile picture: ' + error.message);
+                }
+            }
+
+            try {
+                // You would typically save these settings to a user profile document in Firestore
+                // For example: doc(db, 'users', user.uid)
+                // For now, let's just alert and log
+                console.log("Saving settings:", {
+                    name: profileName,
+                    photoURL: photoURL,
+                    sharePantry: sharePantry
+                });
+                alert('Account settings saved! (Functionality to save to Firestore to be implemented)');
+                accountSettingsModal.hide(); // Hide modal after saving
+            } catch (error) {
+                alert('Error saving account settings: ' + error.message);
+                console.error("Error saving account settings:", error);
+            }
+        }
 
         // Log Out
-        document.getElementById('logout-link').addEventListener('click', async function() {
+        async function logout() {
             try {
                 await signOut(auth);
                 window.showSection('welcome-section');
+                alert('You have been logged out.');
             } catch (error) {
                 alert('Logout failed: ' + error.message);
+                console.error("Error during logout:", error);
             }
-        });
+        }
     </script>
 </body>
 </html>
