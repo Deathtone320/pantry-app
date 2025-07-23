@@ -26,14 +26,16 @@
     window.onload = function() {
         // Authentication State
         onAuthStateChanged(auth, user => {
+            const loginSection = document.getElementById('login-section');
+            const appSection = document.getElementById('app-section');
             if (user) {
-                document.getElementById('login-section').style.display = 'none';
-                document.getElementById('app-section').style.display = 'block';
+                if (loginSection) loginSection.style.display = 'none';
+                if (appSection) appSection.style.display = 'block';
                 loadPantry(user.uid);
                 loadUsers(user.uid);
             } else {
-                document.getElementById('login-section').style.display = 'block';
-                document.getElementById('app-section').style.display = 'none';
+                if (loginSection) loginSection.style.display = 'block';
+                if (appSection) appSection.style.display = 'none';
             }
         });
 
