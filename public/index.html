@@ -9,12 +9,364 @@
     <script src="https://cdn.jsdelivr.net/npm/quagga@0.12.1/dist/quagga.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios@1.4.0/dist/axios.min.js"></script>
     <style>
-        /* [Your existing styles remain unchanged] */
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            font-family: 'Arial', sans-serif;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 700px;
+            padding: 15px;
+        }
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            transition: transform 0.2s;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        .btn {
+            border-radius: 25px;
+            padding: 10px 20px;
+            font-weight: bold;
+        }
+        .btn-primary {
+            background-color: #007bff;
+            border: none;
+        }
+        .btn-primary:hover {
+            background-color: #0056b3;
+        }
+        .btn-secondary {
+            background-color: #6c757d;
+            border: none;
+        }
+        .btn-secondary:hover {
+            background-color: #5a6268;
+        }
+        .form-control {
+            border-radius: 10px;
+            margin-bottom: 15px;
+        }
+        h2, h3 {
+            color: #333;
+            font-weight: 600;
+        }
+        .welcome-header {
+            font-size: 2rem;
+            color: #007bff;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+        }
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            .card {
+                margin-bottom: 15px;
+            }
+            .btn {
+                width: 100%;
+                margin-bottom: 10px;
+            }
+        }
+        .hamburger-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: none;
+            border: none;
+            font-size: 2rem;
+            color: #007bff;
+            cursor: pointer;
+            z-index: 1050;
+        }
+        .offcanvas-header {
+            border-bottom: 1px solid #eee;
+        }
+        .offcanvas-body .list-group-item {
+            cursor: pointer;
+        }
+        .offcanvas-body .list-group-item:hover {
+            background-color: #f8f9fa;
+        }
+        #scanner-container {
+            width: 100%;
+            height: 250px;
+            border: 1px solid #ccc;
+            margin-bottom: 15px;
+            background-color: #f0f0f0;
+            overflow: hidden;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        #scanner-container video,
+        #scanner-container canvas {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        #scanner-container canvas.drawingBuffer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 2;
+        }
+        .remove-user-btn, .remove-item-btn, .remove-recipe-btn {
+            background: none;
+            border: none;
+            color: red;
+            font-weight: bold;
+            margin-left: 10px;
+            cursor: pointer;
+        }
+        .pantry-location-group {
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            background-color: #fff;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .pantry-location-group h4 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            color: #007bff;
+        }
+        .pantry-item-box {
+            border: 1px solid #eee;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 10px;
+            background-color: #f9f9f9;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .pantry-item-box img {
+            margin-right: 10px;
+        }
+        .recipe-item-box {
+            border: 1px solid #eee;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 10px;
+            background-color: #f9f9f9;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        .recipe-item-box img {
+            margin-top: 10px;
+            max-width: 100px;
+            height: auto;
+            border-radius: 5px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- [Your existing HTML structure remains unchanged] -->
+        <!-- Welcome Screen -->
+        <div id="welcome-section" class="card text-center p-4">
+            <h2 class="welcome-header mb-4">Welcome to Pantry App</h2>
+            <button id="show-login" class="btn btn-primary">Login</button>
+            <button id="show-register" class="btn btn-secondary mt-3">Register</button>
+        </div>
+
+        <!-- Login Form -->
+        <div id="login-section" class="card p-4" style="display: none;">
+            <h3 class="mb-4">Login</h3>
+            <input type="email" id="login-email" class="form-control" placeholder="Email" required>
+            <input type="password" id="login-password" class="form-control" placeholder="Password" required>
+            <button id="login-btn" class="btn btn-primary">Login</button>
+            <a href="#" id="forgot-password" class="d-block mt-2 text-muted">Forgot Password?</a>
+            <button class="btn btn-secondary mt-3" id="back-from-login">Back</button>
+        </div>
+
+        <!-- Register Form -->
+        <div id="register-section" class="card p-4" style="display: none;">
+            <h3 class="mb-4">Register</h3>
+            <input type="email" id="register-email" class="form-control" placeholder="Email" required>
+            <input type="password" id="register-password" class="form-control" placeholder="Password" required>
+            <input type="password" id="register-confirm-password" class="form-control" placeholder="Confirm Password" required>
+            <button id="register-btn" class="btn btn-primary">Register</button>
+            <button class="btn btn-secondary mt-3" id="back-from-register">Back</button>
+        </div>
+
+        <!-- Email Verification Section -->
+        <div id="verify-email-section" class="card p-4" style="display: none;">
+            <p class="mb-3">Please verify your email to continue.</p>
+            <button id="resend-verification" class="btn btn-primary">Resend Verification Email</button>
+            <button class="btn btn-secondary mt-3" id="back-from-verify">Back</button>
+        </div>
+
+        <!-- Main App -->
+        <div id="app-section" style="display: none;">
+            <button class="hamburger-btn" type="button" data-bs-toggle="offcanvas" data-bs-target="#settings-offcanvas" aria-controls="settings-offcanvas">☰</button>
+            <div class="card p-4">
+                <h2 class="mb-4">Pantry</h2>
+                <button class="btn btn-primary mb-3" id="scan-barcode-btn" data-bs-toggle="tooltip" title="Scan a barcode to add an item to your pantry">Scan Barcode</button>
+                <div id="scanner-container" class="mb-3"></div>
+                <button class="btn btn-secondary mb-3" id="show-manual-add-modal-btn" data-bs-toggle="tooltip" title="Add an item to your pantry manually">Add Item Manually</button>
+                <button class="btn btn-info text-white mb-3" id="show-my-pantry-btn" data-bs-toggle="tooltip" title="View and manage all items in your pantry">My Pantry</button>
+                <button class="btn btn-success text-white mb-3" id="show-recipes-btn" data-bs-toggle="tooltip" title="Find and manage recipes based on your pantry">Recipes</button>
+            </div>
+        </div>
+
+        <!-- Manual Add Item Modal -->
+        <div id="manual-add-item-modal" class="modal fade" tabindex="-1" aria-labelledby="manualAddItemLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="manualAddItemLabel">Add Item Manually</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="text" id="manual-name" class="form-control" placeholder="Item Name" required>
+                        <input type="number" id="manual-quantity" class="form-control" placeholder="Quantity" value="1" min="1" required>
+                        <input type="file" id="manual-image" class="form-control" accept="image/*">
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-primary" id="add-manual-item-btn-modal">Add Item</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Location Input Modal -->
+        <div id="location-input-modal" class="modal fade" tabindex="-1" aria-labelledby="locationInputLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="locationInputLabel">Enter Item Location</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="text" id="item-location" class="form-control" placeholder="e.g., Pantry Shelf 1, Fridge, Freezer" list="previous-locations" required>
+                        <datalist id="previous-locations"></datalist>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-primary" id="save-location-btn">Save Location</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- My Pantry Modal -->
+        <div id="my-pantry-modal" class="modal fade" tabindex="-1" aria-labelledby="myPantryLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="myPantryLabel">My Pantry</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <h5 id="current-pantry-owner"></h5>
+                        <input type="text" id="pantry-search-bar" class="form-control mb-3" placeholder="Search pantry items...">
+                        <div id="pantry-items-display"></div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recipes Modal -->
+        <div id="recipes-modal" class="modal fade" tabindex="-1" aria-labelledby="recipesModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="recipesModalLabel">Recipes</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <button class="btn btn-primary mb-3" id="find-recipe-btn">Find me a Recipe</button>
+                        <hr>
+                        <h4 class="mb-3">Found Recipes</h4>
+                        <div id="found-recipes-display" class="mb-4"></div>
+                        <h4 class="mb-3">Saved Recipes</h4>
+                        <input type="text" id="saved-recipes-search-bar" class="form-control mb-3" placeholder="Search saved recipes...">
+                        <div id="saved-recipes-display"></div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Account Settings Modal -->
+        <div id="account-settings-modal" class="modal fade" tabindex="-1" aria-labelledby="accountSettingsLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="accountSettingsLabel">Account Settings</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <h6>Profile Picture</h6>
+                        <input type="file" id="profile-picture" class="form-control mb-3">
+                        <h6>Name</h6>
+                        <input type="text" id="profile-name" class="form-control mb-3" placeholder="Your Name">
+                        <h6>Sharing Settings</h6>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="share-pantry">
+                            <label class="form-check-label" for="share-pantry">Allow others to view my pantry</label>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="button" class="btn btn-primary" id="save-account-settings-btn">Save changes</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- User Management Modal -->
+        <div id="user-management-modal" class="modal fade" tabindex="-1" aria-labelledby="userManagementLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="userManagementLabel">Manage Pantry Access</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <h4 class="mb-3">Users with Access</h4>
+                        <ul id="user-list" class="list-group mb-3"></ul>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Offcanvas -->
+        <div class="offcanvas offcanvas-end" tabindex="-1" id="settings-offcanvas" aria-labelledby="settingsOffcanvasLabel">
+            <div class="offcanvas-header">
+                <h5 class="offcanvas-title" id="settingsOffcanvasLabel">Settings</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+            </div>
+            <div class="offcanvas-body">
+                <div class="list-group">
+                    <button type="button" class="list-group-item list-group-item-action" id="offcanvas-account-settings-link">Account Settings</button>
+                    <button type="button" class="list-group-item list-group-item-action" id="offcanvas-add-user-btn">Add User</button>
+                    <button type="button" class="list-group-item list-group-item-action" id="offcanvas-manage-access-btn">Manage Access</button>
+                    <button type="button" class="list-group-item list-group-item-action text-danger" id="offcanvas-logout-link">Log Out</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script type="module">
@@ -620,14 +972,13 @@
                 // Generate a custom invitation link
                 const invitationLink = `${window.location.origin}/?action=acceptInvite&inviterId=${user.uid}&invitationDocId=${invitationDocRef.id}`;
 
-                // Since we can't send an email directly for free, provide the link to the user to share manually
+                // Provide the link to the user to share manually
                 alert(`Invitation created! Copy this link and send it to ${newUserEmail}:\n${invitationLink}\nThe invitee must log in or register to accept it.`);
 
-                loadUsers(user.uid); // Refresh the user list
+                loadUsers(user.uid);
             } catch (error) {
                 alert('Error adding user or creating invitation: ' + error.message);
                 console.error("Error in addUser function:", error);
-                // Optionally clean up if the invitation was created but failed later
                 if (invitationDocRef) await deleteDoc(invitationDocRef);
             }
         }
