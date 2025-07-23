@@ -150,7 +150,7 @@
                 <input type="text" id="manual-name" class="form-control" placeholder="Item Name">
                 <input type="number" id="manual-quantity" class="form-control" placeholder="Quantity">
                 <input type="file" id="manual-image" class="form-control" accept="image/*">
-                <button class="btn btn-primary mt-3 mb-3" onclick="addManualItem()" data-bs-toggle="tooltip" title="Add a custom item to your pantry26ntry">Add Item</button>
+                <button class="btn btn-primary mt-3 mb-3" onclick="addManualItem()" data-bs-toggle="tooltip" title="Add a custom item to your pantry">Add Item</button>
                 <ul id="pantry-list" class="list-group mb-3"></ul>
                 <button class="btn btn-primary" onclick="getRecipes()" data-bs-toggle="tooltip" title="Get recipe suggestions based on your pantry items">Get Recipe Suggestions</button>
                 <ul id="recipe-list" class="list-group mt-3"></ul>
@@ -201,26 +201,27 @@
         import { getFirestore, collection, getDocs, addDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
         import { getStorage, ref, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js';
 
+        // Replace with your actual Firebase configuration
         const firebaseConfig = {
-            apiKey: "your-api-key",
-            authDomain: "your-auth-domain",
-            projectId: "your-project-id",
-            storageBucket: "your-storage-bucket",
-            messagingSenderId: "your-messaging-sender-id",
-            appId: "your-app-id",
-            measurementId: "your-measurement-id"
+            apiKey: "YOUR_API_KEY_HERE",
+            authDomain: "YOUR_AUTH_DOMAIN_HERE",
+            projectId: "YOUR_PROJECT_ID_HERE",
+            storageBucket: "YOUR_STORAGE_BUCKET_HERE",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID_HERE",
+            appId: "YOUR_APP_ID_HERE",
+            measurementId: "YOUR_MEASUREMENT_ID_HERE"
         };
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
         const storage = getStorage(app);
 
-        // Show/Hide Sections
-        function showSection(sectionId) {
+        // Show/Hide Sections - Attached to window for global access
+        window.showSection = function(sectionId) {
             ['welcome-section', 'login-section', 'register-section', 'verify-email-section', 'app-section'].forEach(id => {
                 document.getElementById(id).style.display = id === sectionId ? 'block' : 'none';
             });
-        }
+        };
 
         // Initialize Tooltips
         document.addEventListener('DOMContentLoaded', function() {
@@ -231,21 +232,21 @@
         });
 
         // Welcome Screen Buttons
-        document.getElementById('show-login').addEventListener('click', () => showSection('login-section'));
-        document.getElementById('show-register').addEventListener('click', () => showSection('register-section'));
+        document.getElementById('show-login').addEventListener('click', () => window.showSection('login-section'));
+        document.getElementById('show-register').addEventListener('click', () => window.showSection('register-section'));
 
         // Auth State Listener
         onAuthStateChanged(auth, user => {
             if (user) {
                 if (user.emailVerified) {
-                    showSection('app-section');
+                    window.showSection('app-section');
                     loadPantry(user.uid);
                     loadUsers(user.uid);
                 } else {
-                    showSection('verify-email-section');
+                    window.showSection('verify-email-section');
                 }
             } else {
-                showSection('welcome-section');
+                window.showSection('welcome-section');
             }
         });
 
@@ -273,7 +274,7 @@
                 await createUserWithEmailAndPassword(auth, email, password);
                 await sendEmailVerification(auth.currentUser);
                 alert('Verification email sent. Please check your inbox.');
-                showSection('verify-email-section');
+                window.showSection('verify-email-section');
             } catch (error) {
                 alert('Registration failed: ' + error.message);
             }
@@ -415,7 +416,7 @@
             try {
                 const querySnapshot = await getDocs(collection(db, 'pantries', user.uid, 'items'));
                 const ingredients = querySnapshot.docs.map(doc => doc.data().name).join(',');
-                const response = await axios.get(`https://api.spoonacular.com/recipes/findByIngredients?ingredients=${ingredients}&apiKey=your-spoonacular-api-key`);
+                const response = await axios.get(`https://api.spoonacular.com/recipes/findByIngredients?ingredients=${ingredients}&apiKey=YOUR_SPOONACULAR_API_KEY_HERE`);
                 const recipeList = document.getElementById('recipe-list');
                 recipeList.innerHTML = '';
                 response.data.forEach(recipe => {
@@ -486,7 +487,7 @@
         window.logout = async function() {
             try {
                 await signOut(auth);
-                showSection('welcome-section');
+                window.showSection('welcome-section');
             } catch (error) {
                 alert('Logout failed: ' + error.message);
             }
