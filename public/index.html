@@ -1050,12 +1050,17 @@ async function loadUsers(userId) {
         if (friendsSnapshot.empty) {
             userList.innerHTML = '<li class="list-group-item text-muted">No friends yet.</li>';
         } else {
-            friendsSnapshot.forEach(docSnapshot => {
+            // Use for...of to handle async operations sequentially
+            for (const docSnapshot of friendsSnapshot.docs) {
                 const friendData = docSnapshot.data();
-                const li = document.createElement('li');
-                li.className = 'list-group-item d-flex justify-content-between align-items-center';
+                if (!friendData.friendId) {
+                    console.warn('Invalid friendId in document:', docSnapshot.id);
+                    continue;
+                }
                 const friendDoc = await getDoc(doc(db, 'users', friendData.friendId));
                 const friendEmail = friendDoc.exists() ? friendDoc.data().email : 'Unknown User';
+                const li = document.createElement('li');
+                li.className = 'list-group-item d-flex justify-content-between align-items-center';
                 li.innerHTML = `
                     <div class="form-check">
                         <input class="form-check-input" type="checkbox" id="friend-${friendData.friendId}-checkbox"
@@ -1069,7 +1074,7 @@ async function loadUsers(userId) {
                     <button class="remove-friend-btn" data-friend-id="${friendData.friendId}" data-user-id="${userId}">×</button>
                 `;
                 userList.appendChild(li);
-            });
+            }
             userList.querySelectorAll('.remove-friend-btn').forEach(button => {
                 button.addEventListener('click', (event) => {
                     const friendId = event.target.dataset.friendId;
@@ -1088,7 +1093,7 @@ async function loadUsers(userId) {
                         if (synced) {
                             await syncPantries(userId, friendId);
                         }
-                        await loadUsers(userId); // Ensure async call is awaited
+                        await loadUsers(userId);
                         if (friendId === currentPantryUserId) {
                             renderPantryItemsByLocation(friendId);
                         }
