@@ -369,41 +369,41 @@
         </div>
     </div>
 
-    <script type="module">
-        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
-        import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendEmailVerification, sendPasswordResetEmail, signOut } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-        import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc, setDoc, query, where, updateDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
-        import { getStorage, ref, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js';
+<script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+    import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendEmailVerification, sendPasswordResetEmail, signOut } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+    import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc, setDoc, query, where, updateDoc, getDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+    import { getStorage, ref, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js';
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyBhJKdi2UnZX0VFtqkKnrOIiaBWZZgC-V0",
-            authDomain: "pantry-app-1a761.firebaseapp.com",
-            projectId: "pantry-app-1a761",
-            storageBucket: "pantry-app-1a761.firebasestorage.app",
-            messagingSenderId: "276704176511",
-            appId: "1:276704176511:web:2c5798af2bea513c69124a",
-            measurementId: "G-L47SCE5EDN"
-        };
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-        const storage = getStorage(app);
+    const firebaseConfig = {
+        apiKey: "AIzaSyBhJKdi2UnZX0VFtqkKnrOIiaBWZZgC-V0",
+        authDomain: "pantry-app-1a761.firebaseapp.com",
+        projectId: "pantry-app-1a761",
+        storageBucket: "pantry-app-1a761.firebasestorage.app",
+        messagingSenderId: "276704176511",
+        appId: "1:276704176511:web:2c5798af2bea513c69124a",
+        measurementId: "G-L47SCE5EDN"
+    };
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    const storage = getStorage(app);
 
-        let manualAddItemModal;
-        let locationInputModal;
-        let myPantryModal;
-        let recipesModal;
-        let accountSettingsModal;
-        let userManagementModal;
-        let settingsOffcanvas;
-        let currentItemToAdd = null;
-        let currentPantryUserId = null;
+    let manualAddItemModal;
+    let locationInputModal;
+    let myPantryModal;
+    let recipesModal;
+    let accountSettingsModal;
+    let userManagementModal;
+    let settingsOffcanvas;
+    let currentItemToAdd = null;
+    let currentPantryUserId = null;
 
-        window.showSection = function(sectionId) {
-            ['welcome-section', 'login-section', 'register-section', 'verify-email-section', 'app-section'].forEach(id => {
-                document.getElementById(id).style.display = id === sectionId ? 'block' : 'none';
-            });
-        };
+    window.showSection = function(sectionId) {
+        ['welcome-section', 'login-section', 'register-section', 'verify-email-section', 'app-section'].forEach(id => {
+            document.getElementById(id).style.display = id === sectionId ? 'block' : 'none';
+        });
+    };
 
         async function handleInvitationAcceptance() {
             const urlParams = new URLSearchParams(window.location.search);
