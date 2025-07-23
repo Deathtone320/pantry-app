@@ -176,6 +176,14 @@
         #edit-quantity-modal .modal-body {
             padding: 20px;
         }
+        #invitation-modal .modal-body {
+            padding: 20px;
+            text-align: center;
+        }
+        #invitation-modal .modal-body input {
+            margin-bottom: 10px;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
@@ -377,6 +385,25 @@
             </div>
         </div>
 
+        <!-- Invitation Modal -->
+        <div id="invitation-modal" class="modal fade" tabindex="-1" aria-labelledby="invitationModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="invitationModalLabel">Invitation Link</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="text" id="invitation-link" class="form-control" readonly>
+                        <button id="copy-link-btn" class="btn btn-primary mt-2">Copy Link</button>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Settings Offcanvas -->
         <div class="offcanvas offcanvas-end" tabindex="-1" id="settings-offcanvas" aria-labelledby="settingsOffcanvasLabel">
             <div class="offcanvas-header">
@@ -422,6 +449,7 @@
         let userManagementModal;
         let editQuantityModal;
         let settingsOffcanvas;
+        let invitationModal;
         let currentItemToAdd = null;
         let currentPantryUserId = null;
 
@@ -489,6 +517,7 @@
             accountSettingsModal = new bootstrap.Modal(document.getElementById('account-settings-modal'));
             userManagementModal = new bootstrap.Modal(document.getElementById('user-management-modal'));
             editQuantityModal = new bootstrap.Modal(document.getElementById('edit-quantity-modal'));
+            invitationModal = new bootstrap.Modal(document.getElementById('invitation-modal'));
             settingsOffcanvas = new bootstrap.Offcanvas(document.getElementById('settings-offcanvas'));
 
             var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
@@ -597,7 +626,8 @@
                     timestamp: new Date()
                 }).then(() => {
                     const invitationLink = `${window.location.origin}/?inviterId=${auth.currentUser.uid}&token=${token}`;
-                    alert(`Invitation link created! Send this to a friend:\n${invitationLink}\nThey can register with this link to add you as a friend.`);
+                    document.getElementById('invitation-link').value = invitationLink;
+                    invitationModal.show();
                 }).catch(error => {
                     alert('Error creating invitation: ' + error.message);
                     console.error("Error in addUser function:", error);
@@ -610,6 +640,12 @@
             });
             document.getElementById('offcanvas-logout-link').addEventListener('click', logout);
             document.getElementById('save-quantity-btn').addEventListener('click', saveQuantity);
+            document.getElementById('copy-link-btn').addEventListener('click', () => {
+                const linkInput = document.getElementById('invitation-link');
+                linkInput.select();
+                document.execCommand('copy');
+                alert('Link copied to clipboard!');
+            });
 
             handleInvitationRegistration();
         });
