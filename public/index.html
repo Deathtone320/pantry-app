@@ -72,6 +72,31 @@
                 margin-bottom: 10px;
             }
         }
+        .menu-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+        }
+        .menu-content {
+            display: none;
+            position: absolute;
+            top: 50px;
+            right: 10px;
+            background-color: #fff;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            padding: 10px;
+            z-index: 1000;
+        }
+        .menu-content a {
+            display: block;
+            padding: 5px 10px;
+            color: #333;
+            text-decoration: none;
+        }
+        .menu-content a:hover {
+            background-color: #f1f1f1;
+        }
     </style>
 </head>
 <body>
@@ -90,6 +115,7 @@
             <input type="password" id="login-password" class="form-control" placeholder="Password" required>
             <button id="login-btn" class="btn btn-primary">Login</button>
             <a href="#" id="forgot-password" class="d-block mt-2 text-muted">Forgot Password?</a>
+            <button class="btn btn-secondary mt-3" onclick="showSection('welcome-section')">Back</button>
         </div>
 
         <!-- Register Form -->
@@ -99,16 +125,23 @@
             <input type="password" id="register-password" class="form-control" placeholder="Password" required>
             <input type="password" id="register-confirm-password" class="form-control" placeholder="Confirm Password" required>
             <button id="register-btn" class="btn btn-primary">Register</button>
+            <button class="btn btn-secondary mt-3" onclick="showSection('welcome-section')">Back</button>
         </div>
 
         <!-- Email Verification Section -->
         <div id="verify-email-section" class="card p-4" style="display: none;">
             <p class="mb-3">Please verify your email to continue.</p>
             <button id="resend-verification" class="btn btn-primary">Resend Verification Email</button>
+            <button class="btn btn-secondary mt-3" onclick="auth.signOut(); showSection('welcome-section')">Back</button>
         </div>
 
         <!-- Main App -->
         <div id="app-section" style="display: none;">
+            <button class="btn btn-secondary menu-btn" onclick="toggleMenu()">Menu</button>
+            <div id="menu-content" class="menu-content">
+                <a href="#" onclick="showAccountSettings()">Account Settings</a>
+                <a href="#" onclick="logout()">Log Out</a>
+            </div>
             <div class="card p-4">
                 <h2 class="mb-4">Pantry</h2>
                 <button class="btn btn-primary mb-3" onclick="startScanner()" data-bs-toggle="tooltip" title="Scan a barcode to add an item to your pantry">Scan Barcode</button>
@@ -117,7 +150,7 @@
                 <input type="text" id="manual-name" class="form-control" placeholder="Item Name">
                 <input type="number" id="manual-quantity" class="form-control" placeholder="Quantity">
                 <input type="file" id="manual-image" class="form-control" accept="image/*">
-                <button class="btn btn-primary mt-3 mb-3" onclick="addManualItem()" data-bs-toggle="tooltip" title="Add a custom item to your pantry">Add Item</button>
+                <button class="btn btn-primary mt-3 mb-3" onclick="addManualItem()" data-bs-toggle="tooltip" title="Add a custom item to your pantry26ntry">Add Item</button>
                 <ul id="pantry-list" class="list-group mb-3"></ul>
                 <button class="btn btn-primary" onclick="getRecipes()" data-bs-toggle="tooltip" title="Get recipe suggestions based on your pantry items">Get Recipe Suggestions</button>
                 <ul id="recipe-list" class="list-group mt-3"></ul>
@@ -133,22 +166,49 @@
                 </div>
             </div>
         </div>
+
+        <!-- Account Settings Modal -->
+        <div id="account-settings-modal" class="modal fade" tabindex="-1" aria-labelledby="accountSettingsLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="accountSettingsLabel">Account Settings</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <h6>Profile Picture</h6>
+                        <input type="file" id="profile-picture" class="form-control mb-3">
+                        <h6>Name</h6>
+                        <input type="text" id="profile-name" class="form-control mb-3" placeholder="Your Name">
+                        <h6>Sharing Settings</h6>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="share-pantry">
+                            <label class="form-check-label" for="share-pantry">Allow others to view my pantry</label>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="button" class="btn btn-primary" onclick="saveAccountSettings()">Save changes</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
-        import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendEmailVerification, sendPasswordResetEmail } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+        import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendEmailVerification, sendPasswordResetEmail, signOut } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
         import { getFirestore, collection, getDocs, addDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
         import { getStorage, ref, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js';
 
         const firebaseConfig = {
-            apiKey: "AIzaSyBhJKdi2UnZX0VFtqkKnrOIiaBWZZgC-V0",
-            authDomain: "pantry-app-1a761.firebaseapp.com",
-            projectId: "pantry-app-1a761",
-            storageBucket: "pantry-app-1a761.firebasestorage.app",
-            messagingSenderId: "276704176511",
-            appId: "1:276704176511:web:2c5798af2bea513c69124a",
-            measurementId: "G-L47SCE5EDN"
+            apiKey: "your-api-key",
+            authDomain: "your-auth-domain",
+            projectId: "your-project-id",
+            storageBucket: "your-storage-bucket",
+            messagingSenderId: "your-messaging-sender-id",
+            appId: "your-app-id",
+            measurementId: "your-measurement-id"
         };
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
@@ -402,6 +462,33 @@
                 });
             } catch (error) {
                 alert('Error loading users: ' + error.message);
+            }
+        };
+
+        // Toggle Menu
+        window.toggleMenu = function() {
+            const menuContent = document.getElementById('menu-content');
+            menuContent.style.display = menuContent.style.display === 'block' ? 'none' : 'block';
+        };
+
+        // Show Account Settings
+        window.showAccountSettings = function() {
+            const modal = new bootstrap.Modal(document.getElementById('account-settings-modal'));
+            modal.show();
+        };
+
+        // Save Account Settings (Placeholder)
+        window.saveAccountSettings = function() {
+            alert('Settings saved! (Functionality to be implemented)');
+        };
+
+        // Log Out
+        window.logout = async function() {
+            try {
+                await signOut(auth);
+                showSection('welcome-section');
+            } catch (error) {
+                alert('Logout failed: ' + error.message);
             }
         };
     </script>
