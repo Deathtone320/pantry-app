@@ -1,6 +1,4 @@
- <xaiArtifact artifact_id="39a69772-a42e-49b1-9e5a-9251e62fb2bf" artifact_version_id="bd6d02a8-aefe-4b09-a1ea-06307ae8735a" title="firebase.json" contentType="application/json">
-     ```json
-     {
+{
        "hosting": {
          "public": "public",
          "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
@@ -12,4 +10,3 @@
          ]
        }
      }
-     ```
