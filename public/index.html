@@ -303,6 +303,10 @@
                     <div class="modal-body">
                         <button class="btn btn-primary mb-3" id="find-recipe-btn">Find me a Recipe</button>
                         <hr>
+                        <h4 class="mb-3">Found Recipes</h4>
+                        <div id="found-recipes-display" class="mb-4">
+                            <!-- Found recipes will be rendered here -->
+                        </div>
                         <h4 class="mb-3">Saved Recipes</h4>
                         <input type="text" id="saved-recipes-search-bar" class="form-control mb-3" placeholder="Search saved recipes...">
                         <div id="saved-recipes-display">
@@ -384,7 +388,7 @@
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
         import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendEmailVerification, sendPasswordResetEmail, signOut } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-        import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc, setDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+        import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc, setDoc, query, where } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
         import { getStorage, ref, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js';
 
         // Replace with your actual Firebase configuration
@@ -560,7 +564,8 @@
             if (user) {
                 if (user.emailVerified) {
                     window.showSection('app-section');
-                    loadPantry(user.uid); // Load pantry on initial login/refresh
+                    // No need to load a general pantry list on the main screen anymore
+                    // Pantry items are viewed via the "My Pantry" modal.
                 } else {
                     window.showSection('verify-email-section');
                 }
@@ -712,14 +717,19 @@
                 alert('Item added successfully with location!');
                 locationInputModal.hide();
                 currentItemToAdd = null; // Clear temporary item
-                loadPantry(user.uid); // Reload main pantry view
+                // Conditionally update My Pantry modal if it's open
+                if (myPantryModal._isShown) {
+                    renderPantryItemsByLocation(user.uid, document.getElementById('pantry-search-bar').value);
+                }
             } catch (error) {
                 alert('Error saving item with location: ' + error.message);
                 console.error("Error saving item with location:", error);
             }
         }
 
-        // Load Pantry (for main app screen, not grouped)
+        // Load Pantry (This function is no longer used for the main screen display)
+        // It remains here for context but is effectively deprecated in this version.
+        /*
         async function loadPantry(userId) {
             try {
                 const pantryList = document.getElementById('pantry-list');
@@ -741,7 +751,6 @@
                         `;
                         pantryList.appendChild(li);
                     });
-                    // Attach event listeners to the dynamically created remove buttons
                     pantryList.querySelectorAll('.remove-item-btn').forEach(button => {
                         button.addEventListener('click', (event) => {
                             const itemId = event.target.dataset.itemId;
@@ -754,6 +763,7 @@
                 alert('Error loading pantry: ' + error.message);
             }
         }
+        */
 
         // Render Pantry Items by Location (for My Pantry Modal)
         async function renderPantryItemsByLocation(userId, searchTerm = '') {
@@ -835,9 +845,8 @@
             try {
                 await deleteDoc(doc(db, 'pantries', userId, 'items', itemId));
                 alert('Item removed successfully!');
-                // Reload both pantry views
-                loadPantry(userId);
-                if (myPantryModal._isShown) { // Check if modal is open before reloading
+                // Reload My Pantry modal if it's open
+                if (myPantryModal._isShown) {
                     renderPantryItemsByLocation(userId, document.getElementById('pantry-search-bar').value);
                 }
             } catch (error) {
@@ -851,15 +860,15 @@
             const user = auth.currentUser;
             if (!user) return alert('Not logged in');
 
-            const recipeResultsDisplay = document.getElementById('recipe-list'); // This was pantry-list, now recipes-modal
-            recipeResultsDisplay.innerHTML = '<p class="text-center text-muted">Finding recipes...</p>';
+            const foundRecipesDisplay = document.getElementById('found-recipes-display');
+            foundRecipesDisplay.innerHTML = '<p class="text-center text-muted">Finding recipes...</p>';
 
             try {
                 const querySnapshot = await getDocs(collection(db, 'pantries', user.uid, 'items'));
                 const ingredients = querySnapshot.docs.map(doc => doc.data().name).join(',');
 
                 if (!ingredients) {
-                    recipeResultsDisplay.innerHTML = '<li class="list-group-item text-muted">Your pantry is empty. Add items to get recipe suggestions!</li>';
+                    foundRecipesDisplay.innerHTML = '<li class="list-group-item text-muted">Your pantry is empty. Add items to get recipe suggestions!</li>';
                     return;
                 }
 
@@ -868,15 +877,15 @@
                 const SPOONACULAR_API_KEY = 'YOUR_SPOONACULAR_API_KEY_HERE'; // <--- IMPORTANT: Replace this!
 
                 if (SPOONACULAR_API_KEY === 'YOUR_SPOONACULAR_API_KEY_HERE') {
-                    recipeResultsDisplay.innerHTML = '<li class="list-group-item text-danger">Error: Please replace "YOUR_SPOONACULAR_API_KEY_HERE" with your actual Spoonacular API key.</li>';
+                    foundRecipesDisplay.innerHTML = '<li class="list-group-item text-danger">Error: Please replace "YOUR_SPOONACULAR_API_KEY_HERE" with your actual Spoonacular API key.</li>';
                     return;
                 }
 
                 const response = await axios.get(`https://api.spoonacular.com/recipes/findByIngredients?ingredients=${ingredients}&apiKey=${SPOONACULAR_API_KEY}`);
-                recipeResultsDisplay.innerHTML = ''; // Clear loading message
+                foundRecipesDisplay.innerHTML = ''; // Clear loading message
 
                 if (response.data.length === 0) {
-                    recipeResultsDisplay.innerHTML = '<li class="list-group-item text-muted">No recipes found with your current pantry items. Try adding more!</li>';
+                    foundRecipesDisplay.innerHTML = '<li class="list-group-item text-muted">No recipes found with your current pantry items. Try adding more!</li>';
                 } else {
                     response.data.forEach(recipe => {
                         const li = document.createElement('li');
@@ -892,11 +901,11 @@
                             ${recipe.image ? `<img src="${recipe.image}" class="rounded mt-2" alt="${recipe.title}">` : ''}
                             <button class="btn btn-sm btn-success mt-2" data-recipe='${JSON.stringify(recipe)}'>Save Recipe</button>
                         `;
-                        recipeResultsDisplay.appendChild(li);
+                        foundRecipesDisplay.appendChild(li);
                     });
 
                     // Attach event listeners for Save Recipe buttons
-                    recipeResultsDisplay.querySelectorAll('.btn-success').forEach(button => {
+                    foundRecipesDisplay.querySelectorAll('.btn-success').forEach(button => {
                         button.addEventListener('click', (event) => {
                             const recipeData = JSON.parse(event.target.dataset.recipe);
                             saveRecipe(recipeData);
@@ -905,7 +914,7 @@
                 }
             } catch (error) {
                 console.error("Error fetching recipes:", error);
-                recipeResultsDisplay.innerHTML = `<li class="list-group-item text-danger">Error fetching recipes: ${error.message}. Please check your Spoonacular API key and network connection.</li>`;
+                foundRecipesDisplay.innerHTML = `<li class="list-group-item text-danger">Error fetching recipes: ${error.message}. Please check your Spoonacular API key and network connection.</li>`;
             }
         }
 
