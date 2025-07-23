@@ -394,797 +394,797 @@
         </div>
     </div>
 
-    <script type="module">
-        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
-        import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendEmailVerification, sendPasswordResetEmail, signOut } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-        import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc, setDoc, query, where, updateDoc, getDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
-        import { getStorage, ref, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js';
+<script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+    import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendEmailVerification, sendPasswordResetEmail, signOut } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+    import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc, setDoc, query, where, updateDoc, getDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+    import { getStorage, ref, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js';
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyBhJKdi2UnZX0VFtqkKnrOIiaBWZZgC-V0",
-            authDomain: "pantry-app-1a761.firebaseapp.com",
-            projectId: "pantry-app-1a761",
-            storageBucket: "pantry-app-1a761.firebasestorage.app",
-            messagingSenderId: "276704176511",
-            appId: "1:276704176511:web:2c5798af2bea513c69124a",
-            measurementId: "G-L47SCE5EDN"
-        };
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-        const storage = getStorage(app);
+    const firebaseConfig = {
+        apiKey: "AIzaSyBhJKdi2UnZX0VFtqkKnrOIiaBWZZgC-V0",
+        authDomain: "pantry-app-1a761.firebaseapp.com",
+        projectId: "pantry-app-1a761",
+        storageBucket: "pantry-app-1a761.firebasestorage.app",
+        messagingSenderId: "276704176511",
+        appId: "1:276704176511:web:2c5798af2bea513c69124a",
+        measurementId: "G-L47SCE5EDN"
+    };
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    const storage = getStorage(app);
 
-        let manualAddItemModal;
-        let locationInputModal;
-        let myPantryModal;
-        let recipesModal;
-        let accountSettingsModal;
-        let userManagementModal;
-        let editQuantityModal;
-        let settingsOffcanvas;
-        let currentItemToAdd = null;
-        let currentPantryUserId = null;
+    let manualAddItemModal;
+    let locationInputModal;
+    let myPantryModal;
+    let recipesModal;
+    let accountSettingsModal;
+    let userManagementModal;
+    let editQuantityModal;
+    let settingsOffcanvas;
+    let currentItemToAdd = null;
+    let currentPantryUserId = null;
 
-        window.showSection = function(sectionId) {
-            ['welcome-section', 'login-section', 'register-section', 'verify-email-section', 'app-section'].forEach(id => {
-                document.getElementById(id).style.display = id === sectionId ? 'block' : 'none';
-            });
-        };
-
-        async function handleInvitationRegistration() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const inviterId = urlParams.get('inviterId');
-            const token = urlParams.get('token');
-
-            if (inviterId && token) {
-                try {
-                    const invitationRef = doc(db, 'invitations', `${inviterId}_${token}`);
-                    const invitationSnap = await getDoc(invitationRef);
-                    if (invitationSnap.exists() && !invitationSnap.data().used) {
-                        window.showSection('register-section');
-                        document.getElementById('register-btn').onclick = async () => {
-                            const email = document.getElementById('register-email').value;
-                            const password = document.getElementById('register-password').value;
-                            const confirmPassword = document.getElementById('register-confirm-password').value;
-                            if (password !== confirmPassword) {
-                                alert('Passwords do not match');
-                                return;
-                            }
-                            try {
-                                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-                                await sendEmailVerification(userCredential.user);
-                                await setDoc(doc(db, 'users', userCredential.user.uid, 'friends', inviterId), {
-                                    friendId: inviterId,
-                                    synced: false,
-                                    timestamp: new Date()
-                                });
-                                await setDoc(doc(db, 'users', inviterId, 'friends', userCredential.user.uid), {
-                                    friendId: userCredential.user.uid,
-                                    synced: false,
-                                    timestamp: new Date()
-                                });
-                                await updateDoc(invitationRef, { used: true });
-                                alert('Registration successful! Please verify your email to continue.');
-                                window.showSection('verify-email-section');
-                            } catch (error) {
-                                alert('Registration failed: ' + error.message);
-                            }
-                        };
-                    } else {
-                        alert('Invalid or used invitation link.');
-                        window.showSection('welcome-section');
-                    }
-                } catch (error) {
-                    console.error("Error handling invitation:", error);
-                    alert('Failed to process invitation: ' + error.message);
-                }
-            }
-        }
-
-        document.addEventListener('DOMContentLoaded', function() {
-            manualAddItemModal = new bootstrap.Modal(document.getElementById('manual-add-item-modal'));
-            locationInputModal = new bootstrap.Modal(document.getElementById('location-input-modal'));
-            myPantryModal = new bootstrap.Modal(document.getElementById('my-pantry-modal'));
-            recipesModal = new bootstrap.Modal(document.getElementById('recipes-modal'));
-            accountSettingsModal = new bootstrap.Modal(document.getElementById('account-settings-modal'));
-            userManagementModal = new bootstrap.Modal(document.getElementById('user-management-modal'));
-            editQuantityModal = new bootstrap.Modal(document.getElementById('edit-quantity-modal'));
-            settingsOffcanvas = new bootstrap.Offcanvas(document.getElementById('settings-offcanvas'));
-
-            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-            tooltipTriggerList.map(function (tooltipTriggerEl) {
-                return new bootstrap.Tooltip(tooltipTriggerEl);
-            });
-
-            document.getElementById('show-login').addEventListener('click', () => window.showSection('login-section'));
-            document.getElementById('show-register').addEventListener('click', () => window.showSection('register-section'));
-            document.getElementById('back-from-login').addEventListener('click', () => window.showSection('welcome-section'));
-            document.getElementById('back-from-register').addEventListener('click', () => window.showSection('welcome-section'));
-            document.getElementById('back-from-verify').addEventListener('click', async () => {
-                try {
-                    await signOut(auth);
-                    window.showSection('welcome-section');
-                } catch (error) {
-                    console.error("Error signing out from verification screen:", error);
-                    alert('Could not go back: ' + error.message);
-                }
-            });
-
-            document.getElementById('login-btn').addEventListener('click', async () => {
-                const email = document.getElementById('login-email').value;
-                const password = document.getElementById('login-password').value;
-                try {
-                    await signInWithEmailAndPassword(auth, email, password);
-                } catch (error) {
-                    alert('Login failed: ' + error.message);
-                }
-            });
-
-            document.getElementById('register-btn').addEventListener('click', async () => {
-                const email = document.getElementById('register-email').value;
-                const password = document.getElementById('register-password').value;
-                const confirmPassword = document.getElementById('register-confirm-password').value;
-                if (password !== confirmPassword) {
-                    alert('Passwords do not match');
-                    return;
-                }
-                try {
-                    await createUserWithEmailAndPassword(auth, email, password);
-                    await sendEmailVerification(auth.currentUser);
-                    alert('Verification email sent. Please check your inbox.');
-                    window.showSection('verify-email-section');
-                } catch (error) {
-                    alert('Registration failed: ' + error.message);
-                }
-            });
-
-            document.getElementById('resend-verification').addEventListener('click', async () => {
-                try {
-                    await sendEmailVerification(auth.currentUser);
-                    alert('Verification email resent. Please check your inbox.');
-                } catch (error) {
-                    alert('Failed to resend verification email: ' + error.message);
-                }
-            });
-
-            document.getElementById('forgot-password').addEventListener('click', async () => {
-                const email = document.getElementById('login-email').value;
-                if (!email) {
-                    alert('Please enter your email to reset password');
-                    return;
-                }
-                try {
-                    await sendPasswordResetEmail(auth, email);
-                    alert('Password reset email sent. Please check your inbox.');
-                } catch (error) {
-                    alert('Failed to send password reset email: ' + error.message);
-                }
-            });
-
-            document.getElementById('scan-barcode-btn').addEventListener('click', startScanner);
-            document.getElementById('show-manual-add-modal-btn').addEventListener('click', () => manualAddItemModal.show());
-            document.getElementById('show-my-pantry-btn').addEventListener('click', () => {
-                myPantryModal.show();
-                renderPantryItemsByLocation(currentPantryUserId);
-            });
-            document.getElementById('show-recipes-btn').addEventListener('click', () => {
-                recipesModal.show();
-                loadSavedRecipes(auth.currentUser.uid);
-                document.getElementById('found-recipes-display').innerHTML = '';
-            });
-
-            document.getElementById('add-manual-item-btn-modal').addEventListener('click', addManualItem);
-            document.getElementById('save-location-btn').addEventListener('click', saveItemLocation);
-            document.getElementById('pantry-search-bar').addEventListener('input', (event) => {
-                renderPantryItemsByLocation(currentPantryUserId, event.target.value);
-            });
-            document.getElementById('find-recipe-btn').addEventListener('click', getRecipes);
-            document.getElementById('saved-recipes-search-bar').addEventListener('input', (event) => {
-                loadSavedRecipes(auth.currentUser.uid, event.target.value);
-            });
-            document.getElementById('save-account-settings-btn').addEventListener('click', saveAccountSettings);
-            document.getElementById('offcanvas-account-settings-link').addEventListener('click', () => {
-                settingsOffcanvas.hide();
-                accountSettingsModal.show();
-            });
-            document.getElementById('offcanvas-add-user-btn').addEventListener('click', () => {
-                settingsOffcanvas.hide();
-                const newUserEmail = prompt("Enter the email of the user you want to invite:");
-                if (newUserEmail) {
-                    addUser(newUserEmail);
-                }
-            });
-            document.getElementById('offcanvas-manage-access-btn').addEventListener('click', () => {
-                settingsOffcanvas.hide();
-                userManagementModal.show();
-                loadUsers(auth.currentUser.uid);
-            });
-            document.getElementById('offcanvas-logout-link').addEventListener('click', logout);
-            document.getElementById('save-quantity-btn').addEventListener('click', saveQuantity);
-
-            handleInvitationRegistration();
+    window.showSection = function(sectionId) {
+        ['welcome-section', 'login-section', 'register-section', 'verify-email-section', 'app-section'].forEach(id => {
+            document.getElementById(id).style.display = id === sectionId ? 'block' : 'none';
         });
+    };
 
-        onAuthStateChanged(auth, async user => {
-            if (user) {
-                currentPantryUserId = user.uid;
-                if (user.emailVerified) {
-                    window.showSection('app-section');
-                } else {
-                    window.showSection('verify-email-section');
-                }
-            } else {
-                currentPantryUserId = null;
-                window.showSection('welcome-section');
-            }
-        });
+    async function handleInvitationRegistration() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const inviterId = urlParams.get('inviterId');
+        const token = urlParams.get('token');
 
-        async function startScanner() {
-            const scannerContainer = document.querySelector('#scanner-container');
-            scannerContainer.innerHTML = '';
-            Quagga.init({
-                inputStream: {
-                    name: "Live",
-                    type: "LiveStream",
-                    target: scannerContainer,
-                    constraints: { facingMode: "environment" }
-                },
-                decoder: { readers: ["ean_reader", "upc_reader"] }
-            }, function(err) {
-                if (err) {
-                    console.error(err);
-                    alert('Error initializing scanner: ' + err.message);
-                    return;
-                }
-                Quagga.start();
-            });
-            Quagga.onDetected(async (data) => {
-                const barcode = data.codeResult.code;
-                Quagga.stop();
-                scannerContainer.innerHTML = '';
-                await fetchItem(barcode);
-            });
-        }
-
-        async function fetchItem(barcode) {
+        if (inviterId && token) {
             try {
-                const response = await axios.get(`https://world.openfoodfacts.org/api/v0/product/${barcode}.json`);
-                if (response.data.status === 1) {
-                    currentItemToAdd = {
-                        name: response.data.product.product_name || 'Unknown Product',
-                        barcode,
-                        quantity: 1,
-                        image: response.data.product.image_url || ''
+                const invitationRef = doc(db, 'invitations', `${inviterId}_${token}`);
+                const invitationSnap = await getDoc(invitationRef);
+                if (invitationSnap.exists() && !invitationSnap.data().used) {
+                    window.showSection('register-section');
+                    document.getElementById('register-btn').onclick = async () => {
+                        const email = document.getElementById('register-email').value;
+                        const password = document.getElementById('register-password').value;
+                        const confirmPassword = document.getElementById('register-confirm-password').value;
+                        if (password !== confirmPassword) {
+                            alert('Passwords do not match');
+                            return;
+                        }
+                        try {
+                            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                            await sendEmailVerification(userCredential.user);
+                            await setDoc(doc(db, 'users', userCredential.user.uid, 'friends', inviterId), {
+                                friendId: inviterId,
+                                synced: false,
+                                timestamp: new Date()
+                            });
+                            await setDoc(doc(db, 'users', inviterId, 'friends', userCredential.user.uid), {
+                                friendId: userCredential.user.uid,
+                                synced: false,
+                                timestamp: new Date()
+                            });
+                            await updateDoc(invitationRef, { used: true });
+                            alert('Registration successful! Please verify your email to continue.');
+                            window.showSection('verify-email-section');
+                        } catch (error) {
+                            alert('Registration failed: ' + error.message);
+                        }
                     };
-                    promptForItemLocation();
                 } else {
-                    alert('Product not found in database. Please add it manually.');
-                    document.getElementById('manual-name').value = '';
-                    document.getElementById('manual-quantity').value = '1';
-                    document.getElementById('manual-image').value = '';
-                    manualAddItemModal.show();
+                    alert('Invalid or used invitation link.');
+                    window.showSection('welcome-section');
                 }
             } catch (error) {
-                alert('Error fetching product: ' + error.message);
-                console.error("Error fetching product:", error);
+                console.error("Error handling invitation:", error);
+                alert('Failed to process invitation: ' + error.message);
             }
         }
-
-        async function addManualItem() {
-            const name = document.getElementById('manual-name').value;
-            const quantity = parseInt(document.getElementById('manual-quantity').value) || 1;
-            const imageFile = document.getElementById('manual-image').files[0];
-            let imageUrl = '';
-
-            if (!name) {
-                alert('Item name is required.');
-                return;
-            }
-
-            if (imageFile) {
-                try {
-                    const user = auth.currentUser;
-                    const storageRef = ref(storage, `images/${user.uid}/${imageFile.name}`);
-                    await uploadBytes(storageRef, imageFile);
-                    imageUrl = await getDownloadURL(storageRef);
-                } catch (error) {
-                    console.error("Error uploading image:", error);
-                    alert('Error uploading image: ' + error.message);
-                    return;
-                }
-            }
-
-            currentItemToAdd = { name, quantity, image: imageUrl };
-            manualAddItemModal.hide();
-            promptForItemLocation();
-        }
-
-        async function promptForItemLocation() {
-            if (!auth.currentUser) {
-                alert('Not logged in.');
-                return;
-            }
-            const locationInput = document.getElementById('item-location');
-            const previousLocationsDatalist = document.getElementById('previous-locations');
-            locationInput.value = '';
-
-            try {
-                const locationsSnapshot = await getDocs(collection(db, 'users', auth.currentUser.uid, 'locations'));
-                previousLocationsDatalist.innerHTML = '';
-                locationsSnapshot.forEach(doc => {
-                    const option = document.createElement('option');
-                    option.value = doc.id;
-                    previousLocationsDatalist.appendChild(option);
-                });
-            } catch (error) {
-                console.error("Error loading previous locations:", error);
-            }
-
-            locationInputModal.show();
-        }
-
-        async function saveItemLocation() {
-            const user = auth.currentUser;
-            if (!user || !currentItemToAdd) {
-                alert('Error: User not logged in or no item to save.');
-                return;
-            }
-
-            const location = document.getElementById('item-location').value.trim();
-            if (!location) {
-                alert('Location is required.');
-                return;
-            }
-
-            try {
-                await setDoc(doc(db, 'users', user.uid, 'locations', location), { lastUsed: new Date() }, { merge: true });
-                await addDoc(collection(db, 'pantries', currentPantryUserId, 'items'), {
-                    ...currentItemToAdd,
-                    location,
-                    addedAt: new Date()
-                });
-                alert('Item added successfully with location!');
-                locationInputModal.hide();
-                currentItemToAdd = null;
-                if (myPantryModal._isShown) {
-                    renderPantryItemsByLocation(currentPantryUserId, document.getElementById('pantry-search-bar').value);
-                }
-            } catch (error) {
-                alert('Error saving item with location: ' + error.message);
-                console.error("Error saving item with location:", error);
-            }
-        }
-
-async function renderPantryItemsByLocation(pantryOwnerId, searchTerm = '') {
-    if (!pantryOwnerId) {
-        document.getElementById('pantry-items-display').innerHTML = '<p class="text-center text-muted">Please select a pantry to view.</p>';
-        document.getElementById('current-pantry-owner').textContent = 'Pantry: Not Selected';
-        return;
     }
 
-    try {
-        const pantryItemsDisplay = document.getElementById('pantry-items-display');
-        pantryItemsDisplay.innerHTML = '<p class="text-center text-muted">Loading pantry items...</p>';
+    document.addEventListener('DOMContentLoaded', function() {
+        manualAddItemModal = new bootstrap.Modal(document.getElementById('manual-add-item-modal'));
+        locationInputModal = new bootstrap.Modal(document.getElementById('location-input-modal'));
+        myPantryModal = new bootstrap.Modal(document.getElementById('my-pantry-modal'));
+        recipesModal = new bootstrap.Modal(document.getElementById('recipes-modal'));
+        accountSettingsModal = new bootstrap.Modal(document.getElementById('account-settings-modal'));
+        userManagementModal = new bootstrap.Modal(document.getElementById('user-management-modal'));
+        editQuantityModal = new bootstrap.Modal(document.getElementById('edit-quantity-modal'));
+        settingsOffcanvas = new bootstrap.Offcanvas(document.getElementById('settings-offcanvas'));
 
-        const ownerDoc = await getDoc(doc(db, 'users', pantryOwnerId));
-        const ownerEmail = ownerDoc.exists() ? ownerDoc.data().name || ownerDoc.data().email : 'Unknown User';
-        document.getElementById('current-pantry-owner').textContent = `Viewing Pantry: ${ownerEmail}`;
-
-        const querySnapshot = await getDocs(collection(db, 'pantries', pantryOwnerId, 'items'));
-        const itemsByLocation = {};
-        querySnapshot.forEach(doc => {
-            const item = { id: doc.id, ...doc.data() };
-            const location = item.location || 'Unsorted';
-            if (!itemsByLocation[location]) itemsByLocation[location] = [];
-            itemsByLocation[location].push(item);
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
         });
 
-        pantryItemsDisplay.innerHTML = '';
-        if (Object.keys(itemsByLocation).length === 0) {
-            pantryItemsDisplay.innerHTML = '<p class="text-center text-muted">This pantry is empty. Add some items!</p>';
-            return;
-        }
-
-        const filteredLocations = Object.keys(itemsByLocation).filter(location =>
-            location.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            itemsByLocation[location].some(item => item.name.toLowerCase().includes(searchTerm.toLowerCase()))
-        ).sort();
-
-        if (filteredLocations.length === 0) {
-            pantryItemsDisplay.innerHTML = '<p class="text-center text-muted">No matching items found for your search.</p>';
-            return;
-        }
-
-        filteredLocations.forEach(location => {
-            const locationGroupDiv = document.createElement('div');
-            locationGroupDiv.className = 'pantry-location-group';
-            locationGroupDiv.innerHTML = `<h4>${location}</h4>`;
-            itemsByLocation[location].filter(item =>
-                item.name.toLowerCase().includes(searchTerm.toLowerCase())
-            ).forEach(item => {
-                const itemDiv = document.createElement('div');
-                itemDiv.className = 'pantry-item-box';
-                itemDiv.innerHTML = `
-                    <span>
-                        ${item.image ? `<img src="${item.image}" width="40" class="rounded" alt="${item.name}">` : ''}
-                        <strong>${item.name}</strong> (Qty: ${item.quantity})
-                    </span>
-                    <div>
-                        <button class="edit-item-btn" data-item-id="${item.id}" data-user-id="${pantryOwnerId}" data-quantity="${item.quantity}">Edit</button>
-                        <button class="remove-item-btn btn btn-danger btn-sm" data-item-id="${item.id}" data-user-id="${pantryOwnerId}">Remove</button>
-                    </div>
-                `;
-                locationGroupDiv.appendChild(itemDiv);
-            });
-            pantryItemsDisplay.appendChild(locationGroupDiv);
-        });
-
-        pantryItemsDisplay.querySelectorAll('.remove-item-btn').forEach(button => {
-            button.addEventListener('click', (event) => {
-                const itemId = event.target.dataset.itemId;
-                const currentPantryOwnerId = event.target.dataset.userId;
-                removeItem(itemId, currentPantryOwnerId);
-            });
-        });
-        pantryItemsDisplay.querySelectorAll('.edit-item-btn').forEach(button => {
-            button.addEventListener('click', (event) => {
-                const itemId = event.target.dataset.itemId;
-                const userId = event.target.dataset.userId;
-                const currentQuantity = parseInt(event.target.dataset.quantity);
-                document.getElementById('edit-quantity-input').value = currentQuantity;
-                editQuantityModal.show();
-                window.currentEditingItem = { itemId, userId };
-            });
-        });
-    } catch (error) {
-        alert('Error loading pantry items by location: ' + error.message);
-        console.error("Error loading pantry items by location:", error);
-    }
-}
-
-        window.removeItem = async function(itemId, pantryOwnerId) {
-            if (!confirm('Are you sure you want to remove this item?')) return;
-            try {
-                await deleteDoc(doc(db, 'pantries', pantryOwnerId, 'items', itemId));
-                alert('Item removed successfully!');
-                if (myPantryModal._isShown) {
-                    renderPantryItemsByLocation(pantryOwnerId, document.getElementById('pantry-search-bar').value);
-                }
-            } catch (error) {
-                alert('Error removing item: ' + error.message);
-            }
-        };
-
-        async function saveQuantity() {
-            const newQuantity = parseInt(document.getElementById('edit-quantity-input').value);
-            if (isNaN(newQuantity) || newQuantity < 1) {
-                alert('Please enter a valid quantity greater than 0.');
-                return;
-            }
-            const { itemId, userId } = window.currentEditingItem;
-            try {
-                await updateDoc(doc(db, 'pantries', userId, 'items', itemId), { quantity: newQuantity });
-                alert('Quantity updated successfully!');
-                editQuantityModal.hide();
-                if (myPantryModal._isShown) {
-                    renderPantryItemsByLocation(userId, document.getElementById('pantry-search-bar').value);
-                }
-            } catch (error) {
-                alert('Error updating quantity: ' + error.message);
-                console.error("Error updating quantity:", error);
-            }
-            delete window.currentEditingItem;
-        }
-
-        async function getRecipes() {
-            const user = auth.currentUser;
-            if (!user) return alert('Not logged in');
-            const foundRecipesDisplay = document.getElementById('found-recipes-display');
-            foundRecipesDisplay.innerHTML = '<p class="text-center text-muted">Finding recipes...</p>';
-
-            try {
-                const querySnapshot = await getDocs(collection(db, 'pantries', currentPantryUserId, 'items'));
-                const ingredients = querySnapshot.docs.map(doc => doc.data().name).join(',');
-                if (!ingredients) {
-                    foundRecipesDisplay.innerHTML = '<li class="list-group-item text-muted">The current pantry is empty. Add items to get recipe suggestions!</li>';
-                    return;
-                }
-                const SPOONACULAR_API_KEY = 'YOUR_SPOONACULAR_API_KEY_HERE';
-                if (SPOONACULAR_API_KEY === 'YOUR_SPOONACULAR_API_KEY_HERE') {
-                    foundRecipesDisplay.innerHTML = '<li class="list-group-item text-danger">Error: Please replace "YOUR_SPOONACULAR_API_KEY_HERE" with your actual Spoonacular API key.</li>';
-                    return;
-                }
-                const response = await axios.get(`https://api.spoonacular.com/recipes/findByIngredients?ingredients=${ingredients}&apiKey=${SPOONACULAR_API_KEY}`);
-                foundRecipesDisplay.innerHTML = '';
-                if (response.data.length === 0) {
-                    foundRecipesDisplay.innerHTML = '<li class="list-group-item text-muted">No recipes found with items from the current pantry. Try adding more!</li>';
-                } else {
-                    response.data.forEach(recipe => {
-                        const li = document.createElement('li');
-                        li.className = 'list-group-item recipe-item-box';
-                        li.innerHTML = `
-                            <div>
-                                <strong>${recipe.title}</strong><br>
-                                <small>
-                                    Used Ingredients: ${recipe.usedIngredientCount}<br>
-                                    Missing Ingredients: ${recipe.missedIngredientCount}
-                                </small>
-                            </div>
-                            ${recipe.image ? `<img src="${recipe.image}" class="rounded mt-2" alt="${recipe.title}">` : ''}
-                            <button class="btn btn-sm btn-success mt-2" data-recipe='${JSON.stringify(recipe)}'>Save Recipe</button>
-                        `;
-                        foundRecipesDisplay.appendChild(li);
-                    });
-                    foundRecipesDisplay.querySelectorAll('.btn-success').forEach(button => {
-                        button.addEventListener('click', (event) => {
-                            const recipeData = JSON.parse(event.target.dataset.recipe);
-                            saveRecipe(recipeData);
-                        });
-                    });
-                }
-            } catch (error) {
-                console.error("Error fetching recipes:", error);
-                foundRecipesDisplay.innerHTML = `<li class="list-group-item text-danger">Error fetching recipes: ${error.message}. Please check your Spoonacular API key and network connection.</li>`;
-            }
-        }
-
-        async function saveRecipe(recipeData) {
-            const user = auth.currentUser;
-            if (!user) return alert('Not logged in');
-            try {
-                const savedRecipesRef = collection(db, 'users', user.uid, 'saved_recipes');
-                const q = query(savedRecipesRef, where("id", "==", recipeData.id));
-                const querySnapshot = await getDocs(q);
-                if (!querySnapshot.empty) {
-                    alert('Recipe already saved!');
-                    return;
-                }
-                await addDoc(savedRecipesRef, {
-                    id: recipeData.id,
-                    title: recipeData.title,
-                    image: recipeData.image || '',
-                    usedIngredientCount: recipeData.usedIngredientCount,
-                    missedIngredientCount: recipeData.missedIngredientCount,
-                    savedAt: new Date()
-                });
-                alert('Recipe saved successfully!');
-                loadSavedRecipes(user.uid);
-            } catch (error) {
-                alert('Error saving recipe: ' + error.message);
-                console.error("Error saving recipe:", error);
-            }
-        }
-
-        async function loadSavedRecipes(userId, searchTerm = '') {
-            try {
-                const savedRecipesDisplay = document.getElementById('saved-recipes-display');
-                savedRecipesDisplay.innerHTML = '<p class="text-center text-muted">Loading saved recipes...</p>';
-                const querySnapshot = await getDocs(collection(db, 'users', userId, 'saved_recipes'));
-                savedRecipesDisplay.innerHTML = '';
-                if (querySnapshot.empty) {
-                    savedRecipesDisplay.innerHTML = '<p class="text-center text-muted">No recipes saved yet.</p>';
-                } else {
-                    const filteredRecipes = querySnapshot.docs.filter(doc => {
-                        const recipe = doc.data();
-                        return recipe.title.toLowerCase().includes(searchTerm.toLowerCase());
-                    });
-                    if (filteredRecipes.length === 0) {
-                        savedRecipesDisplay.innerHTML = '<p class="text-center text-muted">No matching saved recipes found.</p>';
-                        return;
-                    }
-                    filteredRecipes.forEach(docSnapshot => {
-                        const recipe = docSnapshot.data();
-                        const li = document.createElement('div');
-                        li.className = 'list-group-item recipe-item-box';
-                        li.innerHTML = `
-                            <div>
-                                <strong>${recipe.title}</strong><br>
-                                <small>
-                                    Used Ingredients: ${recipe.usedIngredientCount}<br>
-                                    Missing Ingredients: ${recipe.missedIngredientCount}
-                                </small>
-                            </div>
-                            ${recipe.image ? `<img src="${recipe.image}" class="rounded mt-2" alt="${recipe.title}">` : ''}
-                            <button class="remove-recipe-btn btn btn-danger btn-sm mt-2" data-recipe-id="${docSnapshot.id}" data-user-id="${userId}">Remove</button>
-                        `;
-                        savedRecipesDisplay.appendChild(li);
-                    });
-                    savedRecipesDisplay.querySelectorAll('.remove-recipe-btn').forEach(button => {
-                        button.addEventListener('click', (event) => {
-                            const recipeId = event.target.dataset.recipeId;
-                            const currentUserId = event.target.dataset.userId;
-                            removeSavedRecipe(recipeId, currentUserId);
-                        });
-                    });
-                }
-            } catch (error) {
-                alert('Error loading saved recipes: ' + error.message);
-                console.error("Error loading saved recipes:", error);
-            }
-        }
-
-        async function removeSavedRecipe(recipeId, userId) {
-            if (!confirm('Are you sure you want to remove this saved recipe?')) return;
-            try {
-                await deleteDoc(doc(db, 'users', userId, 'saved_recipes', recipeId));
-                alert('Recipe removed successfully!');
-                loadSavedRecipes(userId);
-            } catch (error) {
-                alert('Error removing recipe: ' + error.message);
-                console.error("Error removing saved recipe:", error);
-            }
-        }
-
-        async function addUser(newUserEmail) {
-            const user = auth.currentUser;
-            if (!user) return alert('Not logged in');
-
-            if (!newUserEmail || !newUserEmail.includes('@')) {
-                alert('Please enter a valid email address.');
-                return;
-            }
-
-            try {
-                const token = Math.random().toString(36).substring(2, 15);
-                const invitationRef = doc(db, 'invitations', `${user.uid}_${token}`);
-                await setDoc(invitationRef, {
-                    inviterId: user.uid,
-                    email: newUserEmail,
-                    used: false,
-                    timestamp: new Date()
-                });
-
-                const invitationLink = `${window.location.origin}/?inviterId=${user.uid}&token=${token}`;
-                alert(`Invitation created! Copy this link and send it to ${newUserEmail}:\n${invitationLink}\nThey can register with this link to become your friend.`);
-            } catch (error) {
-                alert('Error creating invitation: ' + error.message);
-                console.error("Error in addUser function:", error);
-            }
-        }
-
-        async function loadUsers(userId) {
-            try {
-                const userList = document.getElementById('user-list');
-                userList.innerHTML = '';
-                const friendsSnapshot = await getDocs(collection(db, 'users', userId, 'friends'));
-                if (friendsSnapshot.empty) {
-                    userList.innerHTML = '<li class="list-group-item text-muted">No friends yet.</li>';
-                } else {
-                    friendsSnapshot.forEach(docSnapshot => {
-                        const friendData = docSnapshot.data();
-                        const li = document.createElement('li');
-                        li.className = 'list-group-item d-flex justify-content-between align-items-center';
-                        const friendDoc = await getDoc(doc(db, 'users', friendData.friendId));
-                        const friendEmail = friendDoc.exists() ? friendDoc.data().email : 'Unknown User';
-                        li.innerHTML = `
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="friend-${friendData.friendId}-checkbox"
-                                    data-friend-id="${friendData.friendId}"
-                                    ${friendData.synced ? 'checked' : ''}
-                                    data-user-id="${userId}">
-                                <label class="form-check-label" for="friend-${friendData.friendId}-checkbox">
-                                    ${friendEmail} (Synced: ${friendData.synced ? 'Yes' : 'No'})
-                                </label>
-                            </div>
-                            <button class="remove-friend-btn" data-friend-id="${friendData.friendId}" data-user-id="${userId}">×</button>
-                        `;
-                        userList.appendChild(li);
-                    });
-                    userList.querySelectorAll('.remove-friend-btn').forEach(button => {
-                        button.addEventListener('click', (event) => {
-                            const friendId = event.target.dataset.friendId;
-                            const currentUserId = event.target.dataset.userId;
-                            removeFriend(friendId, currentUserId);
-                        });
-                    });
-                    userList.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
-                        checkbox.addEventListener('change', async (event) => {
-                            const friendId = event.target.dataset.friendId;
-                            const userId = event.target.dataset.userId;
-                            const synced = event.target.checked;
-                            await updateDoc(doc(db, 'users', userId, 'friends', friendId), { synced });
-                            await updateDoc(doc(db, 'users', friendId, 'friends', userId), { synced });
-                            if (synced) {
-                                await syncPantries(userId, friendId);
-                            }
-                            loadUsers(userId);
-                            if (friendId === currentPantryUserId) {
-                                renderPantryItemsByLocation(friendId);
-                            }
-                        });
-                    });
-                }
-            } catch (error) {
-                alert('Error loading friends: ' + error.message);
-                console.error("Error loading friends:", error);
-            }
-        }
-
-        async function removeFriend(friendId, userId) {
-            if (!confirm('Are you sure you want to remove this friend?')) return;
-            try {
-                await deleteDoc(doc(db, 'users', userId, 'friends', friendId));
-                await deleteDoc(doc(db, 'users', friendId, 'friends', userId));
-                alert('Friend removed successfully!');
-                loadUsers(userId);
-                if (friendId === currentPantryUserId) {
-                    currentPantryUserId = userId;
-                    renderPantryItemsByLocation(userId);
-                }
-            } catch (error) {
-                alert('Error removing friend: ' + error.message);
-                console.error("Error removing friend:", error);
-            }
-        }
-
-        async function syncPantries(userId, friendId) {
-            try {
-                const userItems = (await getDocs(collection(db, 'pantries', userId, 'items'))).docs.map(doc => doc.data());
-                const friendItems = (await getDocs(collection(db, 'pantries', friendId, 'items'))).docs.map(doc => doc.data());
-
-                const allItems = [...userItems, ...friendItems].reduce((acc, item) => {
-                    acc[item.name] = { ...item, quantity: (acc[item.name]?.quantity || 0) + item.quantity };
-                    return acc;
-                }, {});
-
-                await Promise.all(Object.values(allItems).map(item =>
-                    setDoc(doc(db, 'pantries', userId, 'items', item.name), item, { merge: true })
-                ));
-                await Promise.all(Object.values(allItems).map(item =>
-                    setDoc(doc(db, 'pantries', friendId, 'items', item.name), item, { merge: true })
-                ));
-            } catch (error) {
-                console.error("Error syncing pantries:", error);
-            }
-        }
-
-        async function saveAccountSettings() {
-            const user = auth.currentUser;
-            if (!user) {
-                alert('Not logged in.');
-                return;
-            }
-            const profileName = document.getElementById('profile-name').value;
-            const profilePictureFile = document.getElementById('profile-picture').files[0];
-            const sharePantry = document.getElementById('share-pantry').checked;
-            let photoURL = user.photoURL;
-
-            if (profilePictureFile) {
-                try {
-                    const storageRef = ref(storage, `profile_pictures/${user.uid}/${profilePictureFile.name}`);
-                    await uploadBytes(storageRef, profilePictureFile);
-                    photoURL = await getDownloadURL(storageRef);
-                    alert('Profile picture uploaded!');
-                } catch (error) {
-                    console.error("Error uploading profile picture:", error);
-                    alert('Failed to upload profile picture: ' + error.message);
-                }
-            }
-
-            try {
-                await setDoc(doc(db, 'users', user.uid), {
-                    name: profileName,
-                    photoURL: photoURL,
-                    sharePantry: sharePantry
-                }, { merge: true });
-                alert('Account settings saved!');
-                accountSettingsModal.hide();
-            } catch (error) {
-                alert('Error saving account settings: ' + error.message);
-                console.error("Error saving account settings:", error);
-            }
-        }
-
-        async function logout() {
+        document.getElementById('show-login').addEventListener('click', () => window.showSection('login-section'));
+        document.getElementById('show-register').addEventListener('click', () => window.showSection('register-section'));
+        document.getElementById('back-from-login').addEventListener('click', () => window.showSection('welcome-section'));
+        document.getElementById('back-from-register').addEventListener('click', () => window.showSection('welcome-section'));
+        document.getElementById('back-from-verify').addEventListener('click', async () => {
             try {
                 await signOut(auth);
                 window.showSection('welcome-section');
-                alert('You have been logged out.');
             } catch (error) {
-                alert('Logout failed: ' + error.message);
-                console.error("Error during logout:", error);
+                console.error("Error signing out from verification screen:", error);
+                alert('Could not go back: ' + error.message);
+            }
+        });
+
+        document.getElementById('login-btn').addEventListener('click', async () => {
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+            } catch (error) {
+                alert('Login failed: ' + error.message);
+            }
+        });
+
+        document.getElementById('register-btn').addEventListener('click', async () => {
+            const email = document.getElementById('register-email').value;
+            const password = document.getElementById('register-password').value;
+            const confirmPassword = document.getElementById('register-confirm-password').value;
+            if (password !== confirmPassword) {
+                alert('Passwords do not match');
+                return;
+            }
+            try {
+                await createUserWithEmailAndPassword(auth, email, password);
+                await sendEmailVerification(auth.currentUser);
+                alert('Verification email sent. Please check your inbox.');
+                window.showSection('verify-email-section');
+            } catch (error) {
+                alert('Registration failed: ' + error.message);
+            }
+        });
+
+        document.getElementById('resend-verification').addEventListener('click', async () => {
+            try {
+                await sendEmailVerification(auth.currentUser);
+                alert('Verification email resent. Please check your inbox.');
+            } catch (error) {
+                alert('Failed to resend verification email: ' + error.message);
+            }
+        });
+
+        document.getElementById('forgot-password').addEventListener('click', async () => {
+            const email = document.getElementById('login-email').value;
+            if (!email) {
+                alert('Please enter your email to reset password');
+                return;
+            }
+            try {
+                await sendPasswordResetEmail(auth, email);
+                alert('Password reset email sent. Please check your inbox.');
+            } catch (error) {
+                alert('Failed to send password reset email: ' + error.message);
+            }
+        });
+
+        document.getElementById('scan-barcode-btn').addEventListener('click', startScanner);
+        document.getElementById('show-manual-add-modal-btn').addEventListener('click', () => manualAddItemModal.show());
+        document.getElementById('show-my-pantry-btn').addEventListener('click', () => {
+            myPantryModal.show();
+            renderPantryItemsByLocation(currentPantryUserId);
+        });
+        document.getElementById('show-recipes-btn').addEventListener('click', () => {
+            recipesModal.show();
+            loadSavedRecipes(auth.currentUser.uid);
+            document.getElementById('found-recipes-display').innerHTML = '';
+        });
+
+        document.getElementById('add-manual-item-btn-modal').addEventListener('click', addManualItem);
+        document.getElementById('save-location-btn').addEventListener('click', saveItemLocation);
+        document.getElementById('pantry-search-bar').addEventListener('input', (event) => {
+            renderPantryItemsByLocation(currentPantryUserId, event.target.value);
+        });
+        document.getElementById('find-recipe-btn').addEventListener('click', getRecipes);
+        document.getElementById('saved-recipes-search-bar').addEventListener('input', (event) => {
+            loadSavedRecipes(auth.currentUser.uid, event.target.value);
+        });
+        document.getElementById('save-account-settings-btn').addEventListener('click', saveAccountSettings);
+        document.getElementById('offcanvas-account-settings-link').addEventListener('click', () => {
+            settingsOffcanvas.hide();
+            accountSettingsModal.show();
+        });
+        document.getElementById('offcanvas-add-user-btn').addEventListener('click', () => {
+            settingsOffcanvas.hide();
+            const newUserEmail = prompt("Enter the email of the user you want to invite:");
+            if (newUserEmail) {
+                addUser(newUserEmail);
+            }
+        });
+        document.getElementById('offcanvas-manage-access-btn').addEventListener('click', () => {
+            settingsOffcanvas.hide();
+            userManagementModal.show();
+            loadUsers(auth.currentUser.uid);
+        });
+        document.getElementById('offcanvas-logout-link').addEventListener('click', logout);
+        document.getElementById('save-quantity-btn').addEventListener('click', saveQuantity);
+
+        handleInvitationRegistration();
+    });
+
+    onAuthStateChanged(auth, async user => {
+        if (user) {
+            currentPantryUserId = user.uid;
+            if (user.emailVerified) {
+                window.showSection('app-section');
+            } else {
+                window.showSection('verify-email-section');
+            }
+        } else {
+            currentPantryUserId = null;
+            window.showSection('welcome-section');
+        }
+    });
+
+    async function startScanner() {
+        const scannerContainer = document.querySelector('#scanner-container');
+        scannerContainer.innerHTML = '';
+        Quagga.init({
+            inputStream: {
+                name: "Live",
+                type: "LiveStream",
+                target: scannerContainer,
+                constraints: { facingMode: "environment" }
+            },
+            decoder: { readers: ["ean_reader", "upc_reader"] }
+        }, function(err) {
+            if (err) {
+                console.error(err);
+                alert('Error initializing scanner: ' + err.message);
+                return;
+            }
+            Quagga.start();
+        });
+        Quagga.onDetected(async (data) => {
+            const barcode = data.codeResult.code;
+            Quagga.stop();
+            scannerContainer.innerHTML = '';
+            await fetchItem(barcode);
+        });
+    }
+
+    async function fetchItem(barcode) {
+        try {
+            const response = await axios.get(`https://world.openfoodfacts.org/api/v0/product/${barcode}.json`);
+            if (response.data.status === 1) {
+                currentItemToAdd = {
+                    name: response.data.product.product_name || 'Unknown Product',
+                    barcode,
+                    quantity: 1,
+                    image: response.data.product.image_url || ''
+                };
+                promptForItemLocation();
+            } else {
+                alert('Product not found in database. Please add it manually.');
+                document.getElementById('manual-name').value = '';
+                document.getElementById('manual-quantity').value = '1';
+                document.getElementById('manual-image').value = '';
+                manualAddItemModal.show();
+            }
+        } catch (error) {
+            alert('Error fetching product: ' + error.message);
+            console.error("Error fetching product:", error);
+        }
+    }
+
+    async function addManualItem() {
+        const name = document.getElementById('manual-name').value;
+        const quantity = parseInt(document.getElementById('manual-quantity').value) || 1;
+        const imageFile = document.getElementById('manual-image').files[0];
+        let imageUrl = '';
+
+        if (!name) {
+            alert('Item name is required.');
+            return;
+        }
+
+        if (imageFile) {
+            try {
+                const user = auth.currentUser;
+                const storageRef = ref(storage, `images/${user.uid}/${imageFile.name}`);
+                await uploadBytes(storageRef, imageFile);
+                imageUrl = await getDownloadURL(storageRef);
+            } catch (error) {
+                console.error("Error uploading image:", error);
+                alert('Error uploading image: ' + error.message);
+                return;
             }
         }
-    </script>
+
+        currentItemToAdd = { name, quantity, image: imageUrl };
+        manualAddItemModal.hide();
+        promptForItemLocation();
+    }
+
+    async function promptForItemLocation() {
+        if (!auth.currentUser) {
+            alert('Not logged in.');
+            return;
+        }
+        const locationInput = document.getElementById('item-location');
+        const previousLocationsDatalist = document.getElementById('previous-locations');
+        locationInput.value = '';
+
+        try {
+            const locationsSnapshot = await getDocs(collection(db, 'users', auth.currentUser.uid, 'locations'));
+            previousLocationsDatalist.innerHTML = '';
+            locationsSnapshot.forEach(doc => {
+                const option = document.createElement('option');
+                option.value = doc.id;
+                previousLocationsDatalist.appendChild(option);
+            });
+        } catch (error) {
+            console.error("Error loading previous locations:", error);
+        }
+
+        locationInputModal.show();
+    }
+
+    async function saveItemLocation() {
+        const user = auth.currentUser;
+        if (!user || !currentItemToAdd) {
+            alert('Error: User not logged in or no item to save.');
+            return;
+        }
+
+        const location = document.getElementById('item-location').value.trim();
+        if (!location) {
+            alert('Location is required.');
+            return;
+        }
+
+        try {
+            await setDoc(doc(db, 'users', user.uid, 'locations', location), { lastUsed: new Date() }, { merge: true });
+            await addDoc(collection(db, 'pantries', currentPantryUserId, 'items'), {
+                ...currentItemToAdd,
+                location,
+                addedAt: new Date()
+            });
+            alert('Item added successfully with location!');
+            locationInputModal.hide();
+            currentItemToAdd = null;
+            if (myPantryModal._isShown) {
+                renderPantryItemsByLocation(currentPantryUserId, document.getElementById('pantry-search-bar').value);
+            }
+        } catch (error) {
+            alert('Error saving item with location: ' + error.message);
+            console.error("Error saving item with location:", error);
+        }
+    }
+
+    async function renderPantryItemsByLocation(pantryOwnerId, searchTerm = '') {
+        if (!pantryOwnerId) {
+            document.getElementById('pantry-items-display').innerHTML = '<p class="text-center text-muted">Please select a pantry to view.</p>';
+            document.getElementById('current-pantry-owner').textContent = 'Pantry: Not Selected';
+            return;
+        }
+
+        try {
+            const pantryItemsDisplay = document.getElementById('pantry-items-display');
+            pantryItemsDisplay.innerHTML = '<p class="text-center text-muted">Loading pantry items...</p>';
+
+            const ownerDoc = await getDoc(doc(db, 'users', pantryOwnerId));
+            const ownerEmail = ownerDoc.exists() ? ownerDoc.data().name || ownerDoc.data().email : 'Unknown User';
+            document.getElementById('current-pantry-owner').textContent = `Viewing Pantry: ${ownerEmail}`;
+
+            const querySnapshot = await getDocs(collection(db, 'pantries', pantryOwnerId, 'items'));
+            const itemsByLocation = {};
+            querySnapshot.forEach(doc => {
+                const item = { id: doc.id, ...doc.data() };
+                const location = item.location || 'Unsorted';
+                if (!itemsByLocation[location]) itemsByLocation[location] = [];
+                itemsByLocation[location].push(item);
+            });
+
+            pantryItemsDisplay.innerHTML = '';
+            if (Object.keys(itemsByLocation).length === 0) {
+                pantryItemsDisplay.innerHTML = '<p class="text-center text-muted">This pantry is empty. Add some items!</p>';
+                return;
+            }
+
+            const filteredLocations = Object.keys(itemsByLocation).filter(location =>
+                location.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                itemsByLocation[location].some(item => item.name.toLowerCase().includes(searchTerm.toLowerCase()))
+            ).sort();
+
+            if (filteredLocations.length === 0) {
+                pantryItemsDisplay.innerHTML = '<p class="text-center text-muted">No matching items found for your search.</p>';
+                return;
+            }
+
+            filteredLocations.forEach(location => {
+                const locationGroupDiv = document.createElement('div');
+                locationGroupDiv.className = 'pantry-location-group';
+                locationGroupDiv.innerHTML = `<h4>${location}</h4>`;
+                itemsByLocation[location].filter(item =>
+                    item.name.toLowerCase().includes(searchTerm.toLowerCase())
+                ).forEach(item => {
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = 'pantry-item-box';
+                    itemDiv.innerHTML = `
+                        <span>
+                            ${item.image ? `<img src="${item.image}" width="40" class="rounded" alt="${item.name}">` : ''}
+                            <strong>${item.name}</strong> (Qty: ${item.quantity})
+                        </span>
+                        <div>
+                            <button class="edit-item-btn" data-item-id="${item.id}" data-user-id="${pantryOwnerId}" data-quantity="${item.quantity}">Edit</button>
+                            <button class="remove-item-btn btn btn-danger btn-sm" data-item-id="${item.id}" data-user-id="${pantryOwnerId}">Remove</button>
+                        </div>
+                    `;
+                    locationGroupDiv.appendChild(itemDiv);
+                });
+                pantryItemsDisplay.appendChild(locationGroupDiv);
+            });
+
+            pantryItemsDisplay.querySelectorAll('.remove-item-btn').forEach(button => {
+                button.addEventListener('click', (event) => {
+                    const itemId = event.target.dataset.itemId;
+                    const currentPantryOwnerId = event.target.dataset.userId;
+                    removeItem(itemId, currentPantryOwnerId);
+                });
+            });
+            pantryItemsDisplay.querySelectorAll('.edit-item-btn').forEach(button => {
+                button.addEventListener('click', (event) => {
+                    const itemId = event.target.dataset.itemId;
+                    const userId = event.target.dataset.userId;
+                    const currentQuantity = parseInt(event.target.dataset.quantity);
+                    document.getElementById('edit-quantity-input').value = currentQuantity;
+                    editQuantityModal.show();
+                    window.currentEditingItem = { itemId, userId };
+                });
+            });
+        } catch (error) {
+            alert('Error loading pantry items by location: ' + error.message);
+            console.error("Error loading pantry items by location:", error);
+        }
+    }
+
+    window.removeItem = async function(itemId, pantryOwnerId) {
+        if (!confirm('Are you sure you want to remove this item?')) return;
+        try {
+            await deleteDoc(doc(db, 'pantries', pantryOwnerId, 'items', itemId));
+            alert('Item removed successfully!');
+            if (myPantryModal._isShown) {
+                renderPantryItemsByLocation(pantryOwnerId, document.getElementById('pantry-search-bar').value);
+            }
+        } catch (error) {
+            alert('Error removing item: ' + error.message);
+        }
+    };
+
+    async function saveQuantity() {
+        const newQuantity = parseInt(document.getElementById('edit-quantity-input').value);
+        if (isNaN(newQuantity) || newQuantity < 1) {
+            alert('Please enter a valid quantity greater than 0.');
+            return;
+        }
+        const { itemId, userId } = window.currentEditingItem;
+        try {
+            await updateDoc(doc(db, 'pantries', userId, 'items', itemId), { quantity: newQuantity });
+            alert('Quantity updated successfully!');
+            editQuantityModal.hide();
+            if (myPantryModal._isShown) {
+                renderPantryItemsByLocation(userId, document.getElementById('pantry-search-bar').value);
+            }
+        } catch (error) {
+            alert('Error updating quantity: ' + error.message);
+            console.error("Error updating quantity:", error);
+        }
+        delete window.currentEditingItem;
+    }
+
+    async function getRecipes() {
+        const user = auth.currentUser;
+        if (!user) return alert('Not logged in');
+        const foundRecipesDisplay = document.getElementById('found-recipes-display');
+        foundRecipesDisplay.innerHTML = '<p class="text-center text-muted">Finding recipes...</p>';
+
+        try {
+            const querySnapshot = await getDocs(collection(db, 'pantries', currentPantryUserId, 'items'));
+            const ingredients = querySnapshot.docs.map(doc => doc.data().name).join(',');
+            if (!ingredients) {
+                foundRecipesDisplay.innerHTML = '<li class="list-group-item text-muted">The current pantry is empty. Add items to get recipe suggestions!</li>';
+                return;
+            }
+            const SPOONACULAR_API_KEY = 'YOUR_SPOONACULAR_API_KEY_HERE';
+            if (SPOONACULAR_API_KEY === 'YOUR_SPOONACULAR_API_KEY_HERE') {
+                foundRecipesDisplay.innerHTML = '<li class="list-group-item text-danger">Error: Please replace "YOUR_SPOONACULAR_API_KEY_HERE" with your actual Spoonacular API key.</li>';
+                return;
+            }
+            const response = await axios.get(`https://api.spoonacular.com/recipes/findByIngredients?ingredients=${ingredients}&apiKey=${SPOONACULAR_API_KEY}`);
+            foundRecipesDisplay.innerHTML = '';
+            if (response.data.length === 0) {
+                foundRecipesDisplay.innerHTML = '<li class="list-group-item text-muted">No recipes found with items from the current pantry. Try adding more!</li>';
+            } else {
+                response.data.forEach(recipe => {
+                    const li = document.createElement('li');
+                    li.className = 'list-group-item recipe-item-box';
+                    li.innerHTML = `
+                        <div>
+                            <strong>${recipe.title}</strong><br>
+                            <small>
+                                Used Ingredients: ${recipe.usedIngredientCount}<br>
+                                Missing Ingredients: ${recipe.missedIngredientCount}
+                            </small>
+                        </div>
+                        ${recipe.image ? `<img src="${recipe.image}" class="rounded mt-2" alt="${recipe.title}">` : ''}
+                        <button class="btn btn-sm btn-success mt-2" data-recipe='${JSON.stringify(recipe)}'>Save Recipe</button>
+                    `;
+                    foundRecipesDisplay.appendChild(li);
+                });
+                foundRecipesDisplay.querySelectorAll('.btn-success').forEach(button => {
+                    button.addEventListener('click', (event) => {
+                        const recipeData = JSON.parse(event.target.dataset.recipe);
+                        saveRecipe(recipeData);
+                    });
+                });
+            }
+        } catch (error) {
+            console.error("Error fetching recipes:", error);
+            foundRecipesDisplay.innerHTML = `<li class="list-group-item text-danger">Error fetching recipes: ${error.message}. Please check your Spoonacular API key and network connection.</li>`;
+        }
+    }
+
+    async function saveRecipe(recipeData) {
+        const user = auth.currentUser;
+        if (!user) return alert('Not logged in');
+        try {
+            const savedRecipesRef = collection(db, 'users', user.uid, 'saved_recipes');
+            const q = query(savedRecipesRef, where("id", "==", recipeData.id));
+            const querySnapshot = await getDocs(q);
+            if (!querySnapshot.empty) {
+                alert('Recipe already saved!');
+                return;
+            }
+            await addDoc(savedRecipesRef, {
+                id: recipeData.id,
+                title: recipeData.title,
+                image: recipeData.image || '',
+                usedIngredientCount: recipeData.usedIngredientCount,
+                missedIngredientCount: recipeData.missedIngredientCount,
+                savedAt: new Date()
+            });
+            alert('Recipe saved successfully!');
+            loadSavedRecipes(user.uid);
+        } catch (error) {
+            alert('Error saving recipe: ' + error.message);
+            console.error("Error saving recipe:", error);
+        }
+    }
+
+    async function loadSavedRecipes(userId, searchTerm = '') {
+        try {
+            const savedRecipesDisplay = document.getElementById('saved-recipes-display');
+            savedRecipesDisplay.innerHTML = '<p class="text-center text-muted">Loading saved recipes...</p>';
+            const querySnapshot = await getDocs(collection(db, 'users', userId, 'saved_recipes'));
+            savedRecipesDisplay.innerHTML = '';
+            if (querySnapshot.empty) {
+                savedRecipesDisplay.innerHTML = '<p class="text-center text-muted">No recipes saved yet.</p>';
+            } else {
+                const filteredRecipes = querySnapshot.docs.filter(doc => {
+                    const recipe = doc.data();
+                    return recipe.title.toLowerCase().includes(searchTerm.toLowerCase());
+                });
+                if (filteredRecipes.length === 0) {
+                    savedRecipesDisplay.innerHTML = '<p class="text-center text-muted">No matching saved recipes found.</p>';
+                    return;
+                }
+                filteredRecipes.forEach(docSnapshot => {
+                    const recipe = docSnapshot.data();
+                    const li = document.createElement('div');
+                    li.className = 'list-group-item recipe-item-box';
+                    li.innerHTML = `
+                        <div>
+                            <strong>${recipe.title}</strong><br>
+                            <small>
+                                Used Ingredients: ${recipe.usedIngredientCount}<br>
+                                Missing Ingredients: ${recipe.missedIngredientCount}
+                            </small>
+                        </div>
+                        ${recipe.image ? `<img src="${recipe.image}" class="rounded mt-2" alt="${recipe.title}">` : ''}
+                        <button class="remove-recipe-btn btn btn-danger btn-sm mt-2" data-recipe-id="${docSnapshot.id}" data-user-id="${userId}">Remove</button>
+                    `;
+                    savedRecipesDisplay.appendChild(li);
+                });
+                savedRecipesDisplay.querySelectorAll('.remove-recipe-btn').forEach(button => {
+                    button.addEventListener('click', (event) => {
+                        const recipeId = event.target.dataset.recipeId;
+                        const currentUserId = event.target.dataset.userId;
+                        removeSavedRecipe(recipeId, currentUserId);
+                    });
+                });
+            }
+        } catch (error) {
+            alert('Error loading saved recipes: ' + error.message);
+            console.error("Error loading saved recipes:", error);
+        }
+    }
+
+    async function removeSavedRecipe(recipeId, userId) {
+        if (!confirm('Are you sure you want to remove this saved recipe?')) return;
+        try {
+            await deleteDoc(doc(db, 'users', userId, 'saved_recipes', recipeId));
+            alert('Recipe removed successfully!');
+            loadSavedRecipes(userId);
+        } catch (error) {
+            alert('Error removing recipe: ' + error.message);
+            console.error("Error removing saved recipe:", error);
+        }
+    }
+
+    async function addUser(newUserEmail) {
+        const user = auth.currentUser;
+        if (!user) return alert('Not logged in');
+
+        if (!newUserEmail || !newUserEmail.includes('@')) {
+            alert('Please enter a valid email address.');
+            return;
+        }
+
+        try {
+            const token = Math.random().toString(36).substring(2, 15);
+            const invitationRef = doc(db, 'invitations', `${user.uid}_${token}`);
+            await setDoc(invitationRef, {
+                inviterId: user.uid,
+                email: newUserEmail,
+                used: false,
+                timestamp: new Date()
+            });
+
+            const invitationLink = `${window.location.origin}/?inviterId=${user.uid}&token=${token}`;
+            alert(`Invitation created! Copy this link and send it to ${newUserEmail}:\n${invitationLink}\nThey can register with this link to become your friend.`);
+        } catch (error) {
+            alert('Error creating invitation: ' + error.message);
+            console.error("Error in addUser function:", error);
+        }
+    }
+
+    async function loadUsers(userId) {
+        try {
+            const userList = document.getElementById('user-list');
+            userList.innerHTML = '';
+            const friendsSnapshot = await getDocs(collection(db, 'users', userId, 'friends'));
+            if (friendsSnapshot.empty) {
+                userList.innerHTML = '<li class="list-group-item text-muted">No friends yet.</li>';
+            } else {
+                friendsSnapshot.forEach(docSnapshot => {
+                    const friendData = docSnapshot.data();
+                    const li = document.createElement('li');
+                    li.className = 'list-group-item d-flex justify-content-between align-items-center';
+                    const friendDoc = await getDoc(doc(db, 'users', friendData.friendId));
+                    const friendEmail = friendDoc.exists() ? friendDoc.data().email : 'Unknown User';
+                    li.innerHTML = `
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="friend-${friendData.friendId}-checkbox"
+                                data-friend-id="${friendData.friendId}"
+                                ${friendData.synced ? 'checked' : ''}
+                                data-user-id="${userId}">
+                            <label class="form-check-label" for="friend-${friendData.friendId}-checkbox">
+                                ${friendEmail} (Synced: ${friendData.synced ? 'Yes' : 'No'})
+                            </label>
+                        </div>
+                        <button class="remove-friend-btn" data-friend-id="${friendData.friendId}" data-user-id="${userId}">×</button>
+                    `;
+                    userList.appendChild(li);
+                });
+                userList.querySelectorAll('.remove-friend-btn').forEach(button => {
+                    button.addEventListener('click', (event) => {
+                        const friendId = event.target.dataset.friendId;
+                        const currentUserId = event.target.dataset.userId;
+                        removeFriend(friendId, currentUserId);
+                    });
+                });
+                userList.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+                    checkbox.addEventListener('change', async (event) => {
+                        const friendId = event.target.dataset.friendId;
+                        const userId = event.target.dataset.userId;
+                        const synced = event.target.checked;
+                        await updateDoc(doc(db, 'users', userId, 'friends', friendId), { synced });
+                        await updateDoc(doc(db, 'users', friendId, 'friends', userId), { synced });
+                        if (synced) {
+                            await syncPantries(userId, friendId);
+                        }
+                        loadUsers(userId);
+                        if (friendId === currentPantryUserId) {
+                            renderPantryItemsByLocation(friendId);
+                        }
+                    });
+                });
+            }
+        } catch (error) {
+            alert('Error loading friends: ' + error.message);
+            console.error("Error loading friends:", error);
+        }
+    }
+
+    async function removeFriend(friendId, userId) {
+        if (!confirm('Are you sure you want to remove this friend?')) return;
+        try {
+            await deleteDoc(doc(db, 'users', userId, 'friends', friendId));
+            await deleteDoc(doc(db, 'users', friendId, 'friends', userId));
+            alert('Friend removed successfully!');
+            loadUsers(userId);
+            if (friendId === currentPantryUserId) {
+                currentPantryUserId = userId;
+                renderPantryItemsByLocation(userId);
+            }
+        } catch (error) {
+            alert('Error removing friend: ' + error.message);
+            console.error("Error removing friend:", error);
+        }
+    }
+
+    async function syncPantries(userId, friendId) {
+        try {
+            const userItems = (await getDocs(collection(db, 'pantries', userId, 'items'))).docs.map(doc => doc.data());
+            const friendItems = (await getDocs(collection(db, 'pantries', friendId, 'items'))).docs.map(doc => doc.data());
+
+            const allItems = [...userItems, ...friendItems].reduce((acc, item) => {
+                acc[item.name] = { ...item, quantity: (acc[item.name]?.quantity || 0) + item.quantity };
+                return acc;
+            }, {});
+
+            await Promise.all(Object.values(allItems).map(item =>
+                setDoc(doc(db, 'pantries', userId, 'items', item.name), item, { merge: true })
+            ));
+            await Promise.all(Object.values(allItems).map(item =>
+                setDoc(doc(db, 'pantries', friendId, 'items', item.name), item, { merge: true })
+            ));
+        } catch (error) {
+            console.error("Error syncing pantries:", error);
+        }
+    }
+
+    async function saveAccountSettings() {
+        const user = auth.currentUser;
+        if (!user) {
+            alert('Not logged in.');
+            return;
+        }
+        const profileName = document.getElementById('profile-name').value;
+        const profilePictureFile = document.getElementById('profile-picture').files[0];
+        const sharePantry = document.getElementById('share-pantry').checked;
+        let photoURL = user.photoURL;
+
+        if (profilePictureFile) {
+            try {
+                const storageRef = ref(storage, `profile_pictures/${user.uid}/${profilePictureFile.name}`);
+                await uploadBytes(storageRef, profilePictureFile);
+                photoURL = await getDownloadURL(storageRef);
+                alert('Profile picture uploaded!');
+            } catch (error) {
+                console.error("Error uploading profile picture:", error);
+                alert('Failed to upload profile picture: ' + error.message);
+            }
+        }
+
+        try {
+            await setDoc(doc(db, 'users', user.uid), {
+                name: profileName,
+                photoURL: photoURL,
+                sharePantry: sharePantry
+            }, { merge: true });
+            alert('Account settings saved!');
+            accountSettingsModal.hide();
+        } catch (error) {
+            alert('Error saving account settings: ' + error.message);
+            console.error("Error saving account settings:", error);
+        }
+    }
+
+    async function logout() {
+        try {
+            await signOut(auth);
+            window.showSection('welcome-section');
+            alert('You have been logged out.');
+        } catch (error) {
+            alert('Logout failed: ' + error.message);
+            console.error("Error during logout:", error);
+        }
+    }
+</script>
 </body>
 </html>
