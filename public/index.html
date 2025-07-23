@@ -1042,63 +1042,65 @@
         }
     }
 
-    async function loadUsers(userId) {
-        try {
-            const userList = document.getElementById('user-list');
-            userList.innerHTML = '';
-            const friendsSnapshot = await getDocs(collection(db, 'users', userId, 'friends'));
-            if (friendsSnapshot.empty) {
-                userList.innerHTML = '<li class="list-group-item text-muted">No friends yet.</li>';
-            } else {
-                friendsSnapshot.forEach(docSnapshot => {
-                    const friendData = docSnapshot.data();
-                    const li = document.createElement('li');
-                    li.className = 'list-group-item d-flex justify-content-between align-items-center';
-                    const friendDoc = await getDoc(doc(db, 'users', friendData.friendId));
-                    const friendEmail = friendDoc.exists() ? friendDoc.data().email : 'Unknown User';
-                    li.innerHTML = `
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="friend-${friendData.friendId}-checkbox"
-                                data-friend-id="${friendData.friendId}"
-                                ${friendData.synced ? 'checked' : ''}
-                                data-user-id="${userId}">
-                            <label class="form-check-label" for="friend-${friendData.friendId}-checkbox">
-                                ${friendEmail} (Synced: ${friendData.synced ? 'Yes' : 'No'})
-                            </label>
-                        </div>
-                        <button class="remove-friend-btn" data-friend-id="${friendData.friendId}" data-user-id="${userId}">×</button>
-                    `;
-                    userList.appendChild(li);
+async function loadUsers(userId) {
+    try {
+        const userList = document.getElementById('user-list');
+        userList.innerHTML = '';
+        const friendsSnapshot = await getDocs(collection(db, 'users', userId, 'friends'));
+        if (friendsSnapshot.empty) {
+            userList.innerHTML = '<li class="list-group-item text-muted">No friends yet.</li>';
+        } else {
+            friendsSnapshot.forEach(docSnapshot => {
+                const friendData = docSnapshot.data();
+                const li = document.createElement('li');
+                li.className = 'list-group-item d-flex justify-content-between align-items-center';
+                const friendDoc = await getDoc(doc(db, 'users', friendData.friendId));
+                const friendEmail = friendDoc.exists() ? friendDoc.data().email : 'Unknown User';
+                li.innerHTML = `
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="friend-${friendData.friendId}-checkbox"
+                            data-friend-id="${friendData.friendId}"
+                            ${friendData.synced ? 'checked' : ''}
+                            data-user-id="${userId}">
+                        <label class="form-check-label" for="friend-${friendData.friendId}-checkbox">
+                            ${friendEmail} (Synced: ${friendData.synced ? 'Yes' : 'No'})
+                        </label>
+                    </div>
+                    <button class="remove-friend-btn" data-friend-id="${friendData.friendId}" data-user-id="${userId}">×</button>
+                `;
+                userList.appendChild(li);
+            });
+            userList.querySelectorAll('.remove-friend-btn').forEach(button => {
+                button.addEventListener('click', (event) => {
+                    const friendId = event.target.dataset.friendId;
+                    const currentUserId = event.target.dataset.userId;
+                    removeFriend(friendId, currentUserId);
                 });
-                userList.querySelectorAll('.remove-friend-btn').forEach(button => {
-                    button.addEventListener('click', (event) => {
-                        const friendId = event.target.dataset.friendId;
-                        const currentUserId = event.target.dataset.userId;
-                        removeFriend(friendId, currentUserId);
-                    });
-                });
-                userList.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
-                    checkbox.addEventListener('change', async (event) => {
-                        const friendId = event.target.dataset.friendId;
-                        const userId = event.target.dataset.userId;
-                        const synced = event.target.checked;
+            });
+            userList.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+                checkbox.addEventListener('change', async (event) => {
+                    const friendId = event.target.dataset.friendId;
+                    const userId = event.target.dataset.userId;
+                    const synced = event.target.checked;
+                    if (friendId && userId) {
                         await updateDoc(doc(db, 'users', userId, 'friends', friendId), { synced });
                         await updateDoc(doc(db, 'users', friendId, 'friends', userId), { synced });
                         if (synced) {
                             await syncPantries(userId, friendId);
                         }
-                        loadUsers(userId);
+                        await loadUsers(userId); // Ensure async call is awaited
                         if (friendId === currentPantryUserId) {
                             renderPantryItemsByLocation(friendId);
                         }
-                    });
+                    }
                 });
-            }
-        } catch (error) {
-            alert('Error loading friends: ' + error.message);
-            console.error("Error loading friends:", error);
+            });
         }
+    } catch (error) {
+        alert('Error loading friends: ' + error.message);
+        console.error("Error loading friends:", error);
     }
+}
 
     async function removeFriend(friendId, userId) {
         if (!confirm('Are you sure you want to remove this friend?')) return;
