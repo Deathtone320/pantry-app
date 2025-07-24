@@ -1526,7 +1526,7 @@
                     const urlParams = new URLSearchParams(window.location.search);
                     const action = urlParams.get('action');
                     const itemId = urlParams.get('itemId');
-                    const ownerId = url.get('ownerId'); // Corrected to use url.get
+                    const ownerId = urlParams.get('ownerId'); // Corrected from url.get to urlParams.get
                     const recipeId = urlParams.get('recipeId');
 
                     if (action === 'shareItem' && itemId && ownerId) {
@@ -2067,7 +2067,15 @@
                 return;
             }
 
-            const recipeIdToEdit = document.getElementById('recipe-id-to-edit').value;
+            let recipeIdToEdit = document.getElementById('recipe-id-to-edit').value;
+            // Explicitly handle "undefined" string if it somehow gets set
+            if (recipeIdToEdit === "undefined") {
+                recipeIdToEdit = "";
+            }
+
+            console.log('recipeIdToEdit (after cleanup):', recipeIdToEdit); // Debugging: Check the value after cleanup
+            console.log('Boolean(recipeIdToEdit) (after cleanup):', Boolean(recipeIdToEdit)); // Debugging: Check its truthiness
+
             const recipeName = document.getElementById('recipe-name').value.trim();
             const recipeDescription = document.getElementById('recipe-description').value.trim();
             const recipeIngredients = document.getElementById('recipe-ingredients').value.trim();
@@ -2115,9 +2123,13 @@
 
             try {
                 if (recipeIdToEdit) {
+                    // If recipeIdToEdit is a non-empty string, update the existing document
+                    console.log('Attempting to update recipe with ID:', recipeIdToEdit);
                     await updateDoc(doc(db, 'user_created_recipes', recipeIdToEdit), recipeData);
                     showAlert('Recipe updated successfully!');
                 } else {
+                    // If recipeIdToEdit is empty (new recipe), add a new document
+                    console.log('Attempting to create new recipe.');
                     await addDoc(collection(db, 'user_created_recipes'), recipeData);
                     showAlert('Recipe created successfully!');
                 }
