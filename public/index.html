@@ -703,19 +703,31 @@
         });
 
         async function searchAndAddFriend() {
-            const email = document.getElementById('friend-email-search').value.trim();
-            if (!email) {
+            const emailInput = document.getElementById('friend-email-search').value.trim();
+            if (!emailInput) {
                 alert('Please enter an email address.');
                 return;
             }
-            if (email === auth.currentUser.email) {
+            if (!auth.currentUser) {
+                alert('You must be logged in to add a friend.');
+                return;
+            }
+            const email = emailInput.toLowerCase(); // Normalize email to lowercase
+            if (email === auth.currentUser.email.toLowerCase()) {
                 alert('You cannot add yourself as a friend.');
                 return;
             }
             try {
+                console.log('Searching for user with email:', email); // Debug log
                 const usersQuery = query(collection(db, 'users'), where('email', '==', email));
                 const querySnapshot = await getDocs(usersQuery);
+                console.log('Query snapshot size:', querySnapshot.size); // Debug log
+                querySnapshot.forEach(doc => {
+                    console.log('Found user:', doc.id, doc.data()); // Debug log
+                });
+
                 if (querySnapshot.empty) {
+                    console.log('No user found for email:', email); // Debug log
                     const token = Math.random().toString(36).substring(2, 15);
                     const invitationRef = doc(db, 'invitations', `${auth.currentUser.uid}_${token}`);
                     await setDoc(invitationRef, {
@@ -730,6 +742,7 @@
                     const friendDoc = querySnapshot.docs[0];
                     const friendId = friendDoc.id;
                     const friendEmail = friendDoc.data().email;
+                    console.log('User found with ID:', friendId, 'Email:', friendEmail); // Debug log
                     const currentUserDoc = await getDoc(doc(db, 'users', auth.currentUser.uid));
                     const currentUserEmail = currentUserDoc.data().email;
 
@@ -757,7 +770,7 @@
                     document.getElementById('friend-email-search').value = '';
                 }
             } catch (error) {
-                console.error("Error searching for friend:", error);
+                console.error('Error searching for friend:', error, 'Email searched:', email); // Debug log
                 alert('Error searching for friend: ' + error.message);
             }
         }
