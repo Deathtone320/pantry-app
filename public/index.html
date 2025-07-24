@@ -85,6 +85,7 @@
         }
         .offcanvas-header {
             border-bottom: 1px solid #eee;
+            position: relative;
         }
         .offcanvas-body .list-group-item {
             cursor: pointer;
@@ -194,6 +195,16 @@
             justify-content: center;
             padding: 0;
             font-size: 1rem;
+        }
+        .logged-in-user {
+            font-size: 0.9rem;
+            color: #6c757d;
+            margin-bottom: 10px;
+        }
+        .btn-close-offcanvas {
+            position: absolute;
+            top: 10px;
+            right: 10px;
         }
     </style>
 </head>
@@ -444,13 +455,15 @@
         <div class="offcanvas offcanvas-end" tabindex="-1" id="settings-offcanvas" aria-labelledby="settingsOffcanvasLabel">
             <div class="offcanvas-header">
                 <h5 class="offcanvas-title" id="settingsOffcanvasLabel">Settings</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+                <div id="logged-in-user" class="logged-in-user"></div>
+                <button type="button" class="btn-close btn-close-offcanvas" data-bs-dismiss="offcanvas" aria-label="Close"></button>
             </div>
             <div class="offcanvas-body">
                 <div class="list-group">
                     <button type="button" class="list-group-item list-group-item-action" id="offcanvas-account-settings-link">Account Settings</button>
                     <button type="button" class="list-group-item list-group-item-action" id="offcanvas-add-user-btn">Invite</button>
                     <button type="button" class="list-group-item list-group-item-action" id="offcanvas-manage-access-btn">Manage Friends</button>
+                    <button type="button" class="list-group-item list-group-item-action" id="offcanvas-download-btn">Download</button>
                     <button type="button" class="list-group-item list-group-item-action text-danger" id="offcanvas-logout-link">Log Out</button>
                 </div>
             </div>
@@ -489,6 +502,7 @@
         let noUserFoundModal;
         let currentItemToAdd = null;
         let currentPantryUserId = null;
+        let deferredPrompt = null;
 
         window.showSection = function(sectionId) {
             ['welcome-section', 'login-section', 'register-section', 'verify-email-section', 'app-section'].forEach(id => {
@@ -593,6 +607,23 @@
             var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
             tooltipTriggerList.map(function (tooltipTriggerEl) {
                 return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+
+            // Update "Logged in as" text when offcanvas is shown
+            document.getElementById('settings-offcanvas').addEventListener('show.bs.offcanvas', () => {
+                const user = auth.currentUser;
+                const loggedInUserDiv = document.getElementById('logged-in-user');
+                if (user && user.email) {
+                    loggedInUserDiv.textContent = `Logged in as: ${user.email}`;
+                } else {
+                    loggedInUserDiv.textContent = 'Logged in as: Unknown';
+                }
+            });
+
+            // Handle PWA install prompt for mobile devices
+            window.addEventListener('beforeinstallprompt', (e) => {
+                e.preventDefault();
+                deferredPrompt = e;
             });
 
             document.getElementById('show-login').addEventListener('click', () => window.showSection('login-section'));
@@ -716,6 +747,7 @@
                 userManagementModal.show();
                 loadUsers(auth.currentUser.uid);
             });
+            document.getElementById('offcanvas-download-btn').addEventListener('click', downloadShortcut);
             document.getElementById('offcanvas-logout-link').addEventListener('click', logout);
             document.getElementById('save-quantity-btn').addEventListener('click', saveQuantity);
             document.getElementById('copy-link-btn').addEventListener('click', () => {
@@ -734,6 +766,32 @@
 
             handleInvitationRegistration();
         });
+
+        async function downloadShortcut() {
+            const siteUrl = window.location.origin;
+            const iconUrl = 'https://github.com/Deathtone320/pantry-app/blob/main/PantryIcon.png?raw=true';
+            if (deferredPrompt) {
+                // Mobile: Trigger PWA install prompt
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                if (outcome === 'accepted') {
+                    console.log('User accepted the PWA install prompt');
+                } else {
+                    console.log('User dismissed the PWA install prompt');
+                }
+                deferredPrompt = null;
+            } else {
+                // Desktop: Show instructions for manual shortcut creation
+                alert(
+                    'To add a shortcut to your desktop:\n' +
+                    '1. Open your browser’s menu (e.g., three dots in Chrome).\n' +
+                    '2. Select "New Shortcut" or "Create Shortcut" (varies by browser).\n' +
+                    '3. Enter the URL: ' + siteUrl + '\n' +
+                    '4. Name it "Pantry App" and choose to place it on the desktop.\n' +
+                    '5. Optionally, set the icon using this image: ' + iconUrl
+                );
+            }
+        }
 
         async function searchAndAddFriend() {
             const emailInput = document.getElementById('friend-email-search').value.trim();
