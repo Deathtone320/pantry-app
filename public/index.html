@@ -1099,9 +1099,9 @@
                     foundRecipesDisplay.innerHTML = '<li class="list-group-item text-muted">The current pantry is empty. Add items to get recipe suggestions!</li>';
                     return;
                 }
-                const SPOONACULAR_API_KEY = 'e986d8d8aea940aba2095c6b23333f61';
-                if (SPOONACULAR_API_KEY === 'e986d8d8aea940aba2095c6b23333f61') {
-                    foundRecipesDisplay.innerHTML = '<li class="list-group-item text-danger">Error: Please replace "e986d8d8aea940aba2095c6b23333f61" with your actual Spoonacular API key.</li>';
+                const SPOONACULAR_API_KEY = '43f72f2e87ee4c969804402b3f4a93fa';
+                if (SPOONACULAR_API_KEY === 'YOUR_SPOONACULAR_API_KEY_HERE') {
+                    foundRecipesDisplay.innerHTML = '<li class="list-group-item text-danger">Error: Please replace "YOUR_SPOONACULAR_API_KEY_HERE" with your actual Spoonacular API key.</li>';
                     return;
                 }
                 const response = await axios.get(`https://api.spoonacular.com/recipes/findByIngredients?ingredients=${ingredients}&apiKey=${SPOONACULAR_API_KEY}`);
