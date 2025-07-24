@@ -182,7 +182,9 @@
         #invitation-modal .modal-body,
         #no-user-found-modal .modal-body,
         #confirmation-modal .modal-body,
-        #info-modal .modal-body { /* Added info-modal and confirmation-modal */
+        #info-modal .modal-body,
+        #share-item-modal .modal-body, /* Added share-item-modal */
+        #friend-profile-modal .modal-body { /* Added friend-profile-modal */
             padding: 20px;
             text-align: center;
         }
@@ -221,7 +223,12 @@
         .friend-list-item:last-child {
             border-bottom: none;
         }
-        .friend-list-item img {
+        .friend-info {
+            display: flex;
+            align-items: center;
+            flex-grow: 1;
+        }
+        .friend-info img {
             width: 40px; /* Adjust size as needed */
             height: 40px; /* Adjust size as needed */
             border-radius: 50%; /* Makes it round */
@@ -229,10 +236,87 @@
             object-fit: cover; /* Ensures image covers the area without distortion */
             border: 1px solid #ddd; /* Optional: subtle border */
         }
-        .friend-info {
+        .friend-details {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        .friend-details .email {
+            font-weight: bold;
+        }
+        .sync-status-label {
+            font-size: 0.8em;
+            padding: 2px 5px;
+            border-radius: 5px;
+            margin-top: 2px;
+            display: inline-block; /* Ensures it takes only necessary width */
+        }
+        .sync-status-yes {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .sync-status-no {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        /* Styles for current profile picture in account settings */
+        #current-profile-picture-display {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-bottom: 15px;
+            border: 2px solid #007bff;
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        /* Styles for friend profile modal */
+        #friend-profile-modal .modal-body img {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-bottom: 15px;
+            border: 2px solid #007bff;
+        }
+        #friend-profile-modal .modal-body h5 {
+            color: #007bff;
+            font-weight: bold;
+        }
+        #friend-profile-modal .modal-body p {
+            color: #555;
+            margin-bottom: 10px;
+        }
+        #friend-profile-modal .modal-body .pantry-items-section {
+            text-align: left;
+            width: 100%;
+            border-top: 1px solid #eee;
+            padding-top: 15px;
+            margin-top: 15px;
+        }
+        #friend-profile-modal .modal-body .pantry-items-section h6 {
+            color: #333;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        #friend-profile-modal .modal-body .pantry-item-box {
             display: flex;
             align-items: center;
-            flex-grow: 1;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px dashed #eee;
+        }
+        #friend-profile-modal .modal-body .pantry-item-box:last-child {
+            border-bottom: none;
+        }
+        #friend-profile-modal .modal-body .pantry-item-box img {
+            width: 30px;
+            height: 30px;
+            border-radius: 5px;
+            margin-right: 8px;
+            object-fit: cover;
+            border: none; /* Override default img border */
         }
     </style>
 </head>
@@ -380,9 +464,12 @@
                     </div>
                     <div class="modal-body">
                         <h6>Profile Picture</h6>
+                        <img id="current-profile-picture-display" src="https://placehold.co/80x80/cccccc/000000?text=No+Pic" alt="Current Profile Picture">
                         <input type="file" id="profile-picture" class="form-control mb-3">
                         <h6>Name</h6>
                         <input type="text" id="profile-name" class="form-control mb-3" placeholder="Your Name">
+                        <h6>About Me</h6>
+                        <textarea id="about-me-input" class="form-control mb-3" rows="3" placeholder="Tell us about yourself..."></textarea>
                         <h6>Sharing Settings</h6>
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" id="share-pantry">
@@ -516,6 +603,53 @@
             </div>
         </div>
 
+        <!-- Share Item Modal -->
+        <div id="share-item-modal" class="modal fade" tabindex="-1" aria-labelledby="shareItemModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="shareItemModalLabel">Share Item Link</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Share this link for the item:</p>
+                        <input type="text" id="share-item-link" class="form-control" readonly>
+                        <button id="copy-share-item-link-btn" class="btn btn-primary mt-2">Copy Link</button>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Friend Profile Modal -->
+        <div id="friend-profile-modal" class="modal fade" tabindex="-1" aria-labelledby="friendProfileModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="friendProfileModalLabel">Friend Profile</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body text-center">
+                        <img id="friend-profile-picture" src="https://placehold.co/100x100/cccccc/000000?text=No+Pic" alt="Friend Profile Picture">
+                        <h5 id="friend-profile-name"></h5>
+                        <p id="friend-profile-email" class="text-muted"></p>
+                        <p id="friend-profile-about-me" class="text-muted"></p>
+                        <div id="friend-pantry-section" class="pantry-items-section" style="display: none;">
+                            <h6>Friend's Pantry Items</h6>
+                            <div id="friend-pantry-display"></div>
+                        </div>
+                        <p id="friend-pantry-private-message" class="text-muted" style="display: none;">This user's pantry is private.</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
         <!-- Settings Offcanvas -->
         <div class="offcanvas offcanvas-end" tabindex="-1" id="settings-offcanvas" aria-labelledby="settingsOffcanvasLabel">
             <div class="offcanvas-header">
@@ -567,6 +701,9 @@
         let noUserFoundModal;
         let confirmationModal; // Added confirmation modal
         let infoModal; // Added info modal
+        let shareItemModal; // New: Share Item Modal
+        let friendProfileModal; // New: Friend Profile Modal
+
         let currentItemToAdd = null;
         let currentPantryUserId = null;
         let deferredPrompt = null;
@@ -607,6 +744,8 @@
                     await setDoc(userDocRef, {
                         email: user.email.toLowerCase(),
                         name: user.displayName || '',
+                        photoURL: user.photoURL || '',
+                        aboutMe: '', // Initialize aboutMe
                         sharePantry: false,
                         createdAt: new Date()
                     }, { merge: true });
@@ -645,6 +784,8 @@
                                 await setDoc(doc(db, 'users', newUser.uid), {
                                     email: email,
                                     name: '',
+                                    photoURL: '',
+                                    aboutMe: '',
                                     sharePantry: false,
                                     createdAt: new Date()
                                 }, { merge: true });
@@ -663,6 +804,14 @@
                                 await updateDoc(invitationRef, { used: true });
                                 showAlert('Registration successful! Please verify your email to continue.');
                                 window.showSection('verify-email-section');
+
+                                // Check for shared item after registration
+                                const sharedItemId = urlParams.get('itemId');
+                                const sharedItemOwnerId = urlParams.get('ownerId');
+                                if (sharedItemId && sharedItemOwnerId) {
+                                    await addItemFromShare(sharedItemId, sharedItemOwnerId, newUser.uid);
+                                }
+
                             } catch (error) {
                                 console.error("Registration failed:", error);
                                 showAlert('Registration failed: ' + error.message);
@@ -679,6 +828,79 @@
             }
         }
 
+        async function handleSharedItem() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const action = urlParams.get('action');
+            const itemId = urlParams.get('itemId');
+            const ownerId = urlParams.get('ownerId');
+
+            if (action === 'shareItem' && itemId && ownerId) {
+                try {
+                    const itemDoc = await getDoc(doc(db, 'pantries', ownerId, 'items', itemId));
+                    if (itemDoc.exists()) {
+                        const itemData = itemDoc.data();
+                        // Display item details in a temporary section or modal for the user to view/add
+                        myPantryModal.show(); // Re-using myPantryModal for display
+                        document.getElementById('current-pantry-owner').textContent = `Shared Item from: ${itemData.name}`; // Temp display
+                        document.getElementById('pantry-items-display').innerHTML = `
+                            <div class="pantry-item-box">
+                                <span>
+                                    ${itemData.image ? `<img src="${itemData.image}" width="40" class="rounded" alt="${itemData.name}">` : ''}
+                                    <strong>${itemData.name}</strong> (Qty: ${itemData.quantity})
+                                </span>
+                                <button class="btn btn-primary btn-sm" id="add-shared-item-to-my-pantry-btn">Add to My Pantry</button>
+                            </div>
+                            <p class="text-muted mt-3">This item was shared with you. Click "Add to My Pantry" to add it to your own collection.</p>
+                        `;
+
+                        document.getElementById('add-shared-item-to-my-pantry-btn').onclick = async () => {
+                            if (auth.currentUser) {
+                                await addItemFromShare(itemId, ownerId, auth.currentUser.uid);
+                                myPantryModal.hide();
+                                // Clear URL parameters after successful addition
+                                const newUrl = window.location.origin + window.location.pathname;
+                                window.history.replaceState({}, document.title, newUrl);
+                            } else {
+                                showAlert('You need to be logged in or register to add this item to your pantry.');
+                                // Redirect to registration with item details in URL
+                                const registrationUrl = `${window.location.origin}/?action=shareItem&itemId=${itemId}&ownerId=${ownerId}#register`;
+                                window.location.href = registrationUrl;
+                            }
+                        };
+                    } else {
+                        showAlert('Shared item not found.');
+                    }
+                } catch (error) {
+                    console.error('Error handling shared item:', error);
+                    showAlert('Error loading shared item: ' + error.message);
+                }
+            }
+        }
+
+        async function addItemFromShare(sharedItemId, sharedItemOwnerId, targetUserId) {
+            try {
+                const itemDoc = await getDoc(doc(db, 'pantries', sharedItemOwnerId, 'items', sharedItemId));
+                if (itemDoc.exists()) {
+                    const itemData = itemDoc.data();
+                    // Add the item to the target user's pantry
+                    await addDoc(collection(db, 'pantries', targetUserId, 'items'), {
+                        name: itemData.name,
+                        barcode: itemData.barcode || null,
+                        quantity: itemData.quantity,
+                        image: itemData.image || '',
+                        location: 'Shared Items', // Default location for shared items
+                        addedAt: new Date()
+                    });
+                    showAlert(`'${itemData.name}' added to your pantry!`);
+                } else {
+                    showAlert('Shared item not found or no longer exists.');
+                }
+            } catch (error) {
+                console.error('Error adding shared item to pantry:', error);
+                showAlert('Failed to add shared item to your pantry: ' + error.message);
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
             manualAddItemModal = new bootstrap.Modal(document.getElementById('manual-add-item-modal'));
             locationInputModal = new bootstrap.Modal(document.getElementById('location-input-modal'));
@@ -692,6 +914,9 @@
             settingsOffcanvas = new bootstrap.Offcanvas(document.getElementById('settings-offcanvas'));
             confirmationModal = new bootstrap.Modal(document.getElementById('confirmation-modal')); // Initialize confirmation modal
             infoModal = new bootstrap.Modal(document.getElementById('info-modal')); // Initialize info modal
+            shareItemModal = new bootstrap.Modal(document.getElementById('share-item-modal')); // Initialize share item modal
+            friendProfileModal = new bootstrap.Modal(document.getElementById('friend-profile-modal')); // Initialize friend profile modal
+
 
             var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
             tooltipTriggerList.map(function (tooltipTriggerEl) {
@@ -763,12 +988,24 @@
                     await setDoc(doc(db, 'users', newUser.uid), {
                         email: email,
                         name: '',
+                        photoURL: '',
+                        aboutMe: '',
                         sharePantry: false,
                         createdAt: new Date()
                     }, { merge: true });
                     showAlert('Verification email sent. Please check your inbox.');
                     window.showSection('verify-email-section');
+
+                    // Check for shared item after registration
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const sharedItemId = urlParams.get('itemId');
+                    const sharedItemOwnerId = urlParams.get('ownerId');
+                    if (sharedItemId && sharedItemOwnerId) {
+                        await addItemFromShare(sharedItemId, sharedItemOwnerId, newUser.uid);
+                    }
+
                 } catch (error) {
+                    console.error("Registration failed:", error);
                     showAlert('Registration failed: ' + error.message);
                 }
             });
@@ -800,7 +1037,7 @@
             document.getElementById('show-manual-add-modal-btn').addEventListener('click', () => manualAddItemModal.show());
             document.getElementById('show-my-pantry-btn').addEventListener('click', () => {
                 myPantryModal.show();
-                renderPantryItemsByLocation(currentPantryUserId);
+                renderPantryItemsByLocation(auth.currentUser.uid); // Render current user's pantry by default
             });
             document.getElementById('show-recipes-btn').addEventListener('click', () => {
                 recipesModal.show();
@@ -820,6 +1057,7 @@
             document.getElementById('save-account-settings-btn').addEventListener('click', saveAccountSettings);
             document.getElementById('offcanvas-account-settings-link').addEventListener('click', () => {
                 settingsOffcanvas.hide();
+                loadAccountSettings(); // Load settings when opening modal
                 accountSettingsModal.show();
             });
             document.getElementById('offcanvas-add-user-btn').addEventListener('click', () => {
@@ -860,8 +1098,16 @@
                 showAlert('Invitation link copied to clipboard!');
             });
             document.getElementById('search-friend-btn').addEventListener('click', searchAndAddFriend);
+            document.getElementById('copy-share-item-link-btn').addEventListener('click', () => {
+                const linkInput = document.getElementById('share-item-link');
+                linkInput.select();
+                document.execCommand('copy');
+                showAlert('Link copied to clipboard!');
+            });
+
 
             handleInvitationRegistration();
+            handleSharedItem(); // Call this on DOMContentLoaded to check for shared item links
         });
 
         async function downloadShortcut() {
@@ -982,6 +1228,17 @@
                 await ensureUserDocument(user);
                 if (user.emailVerified) {
                     window.showSection('app-section');
+                    // If coming from a shared item link and now logged in/registered, handle it
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const action = urlParams.get('action');
+                    const itemId = urlParams.get('itemId');
+                    const ownerId = urlParams.get('ownerId');
+                    if (action === 'shareItem' && itemId && ownerId) {
+                        await addItemFromShare(itemId, ownerId, user.uid);
+                        // Clear URL parameters after successful addition
+                        const newUrl = window.location.origin + window.location.pathname;
+                        window.history.replaceState({}, document.title, newUrl);
+                    }
                 } else {
                     window.showSection('verify-email-section');
                 }
@@ -1139,8 +1396,9 @@
                 pantryItemsDisplay.innerHTML = '<p class="text-center text-muted">Loading pantry items...</p>';
 
                 const ownerDoc = await getDoc(doc(db, 'users', pantryOwnerId));
-                const ownerEmail = ownerDoc.exists() ? ownerDoc.data().name || ownerDoc.data().email || 'Unknown User' : 'Unknown User';
-                document.getElementById('current-pantry-owner').textContent = `Viewing Pantry: ${ownerEmail}`;
+                const ownerInfo = ownerDoc.exists() ? ownerDoc.data() : {};
+                const ownerDisplay = ownerInfo.name || ownerInfo.email || 'Unknown User';
+                document.getElementById('current-pantry-owner').textContent = `Viewing Pantry: ${ownerDisplay}`;
 
                 const querySnapshot = await getDocs(collection(db, 'pantries', pantryOwnerId, 'items'));
                 const itemsByLocation = {};
@@ -1182,6 +1440,7 @@
                                 <strong>${item.name}</strong> (Qty: ${item.quantity})
                             </span>
                             <div>
+                                <button class="btn btn-sm btn-info text-white me-2 share-item-btn" data-item-id="${item.id}" data-item-owner-id="${pantryOwnerId}">Share</button>
                                 <button class="edit-item-btn" data-item-id="${item.id}" data-user-id="${pantryOwnerId}" data-quantity="${item.quantity}">Edit</button>
                                 <button class="remove-item-btn btn btn-danger btn-sm" data-item-id="${item.id}" data-user-id="${pantryOwnerId}">Remove</button>
                             </div>
@@ -1210,6 +1469,13 @@
                         document.getElementById('edit-quantity-input').value = currentQuantity;
                         editQuantityModal.show();
                         window.currentEditingItem = { itemId, userId };
+                    });
+                });
+                pantryItemsDisplay.querySelectorAll('.share-item-btn').forEach(button => {
+                    button.addEventListener('click', (event) => {
+                        const itemId = event.target.dataset.itemId;
+                        const itemOwnerId = event.target.dataset.itemOwnerId;
+                        generateShareableLink(itemId, itemOwnerId);
                     });
                 });
             } catch (error) {
@@ -1445,20 +1711,17 @@
                         const friendInfo = friendDoc.exists() ? friendDoc.data() : {};
                         const friendDisplay = friendInfo.name || friendInfo.email || friendData.email || 'Unknown User';
                         const friendPhotoURL = friendInfo.photoURL || 'https://placehold.co/40x40/cccccc/000000?text=No+Pic'; // Placeholder if no photoURL
+                        const syncedStatus = friendData.synced ? 'Yes' : 'No';
+                        const syncedClass = friendData.synced ? 'sync-status-yes' : 'sync-status-no';
 
                         const li = document.createElement('li');
-                        li.className = 'list-group-item d-flex justify-content-between align-items-center friend-list-item'; // Added friend-list-item class
+                        li.className = 'list-group-item d-flex justify-content-between align-items-center friend-list-item';
                         li.innerHTML = `
                             <div class="friend-info">
                                 <img src="${friendPhotoURL}" alt="Profile Picture" class="rounded-circle">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="friend-${friendData.friendId}-checkbox"
-                                        data-friend-id="${friendData.friendId}"
-                                        ${friendData.synced ? 'checked' : ''}
-                                        data-user-id="${userId}">
-                                    <label class="form-check-label" for="friend-${friendData.friendId}-checkbox">
-                                        ${friendDisplay} (Synced: ${friendData.synced ? 'Yes' : 'No'})
-                                    </label>
+                                <div class="friend-details">
+                                    <span class="email" style="cursor: pointer;" data-friend-id="${friendData.friendId}">${friendDisplay}</span>
+                                    <span class="sync-status-label ${syncedClass}">Synced: ${syncedStatus}</span>
                                 </div>
                             </div>
                             <button class="remove-friend-btn" data-friend-id="${friendData.friendId}" data-user-id="${userId}">×</button>
@@ -1494,10 +1757,68 @@
                             }
                         });
                     });
+                    userList.querySelectorAll('.friend-details .email').forEach(emailSpan => {
+                        emailSpan.addEventListener('click', (event) => {
+                            const friendId = event.target.dataset.friendId;
+                            showFriendProfile(friendId);
+                        });
+                    });
                 }
             } catch (error) {
                 showAlert('Error loading friends: ' + error.message);
                 console.error("Error loading friends:", error);
+            }
+        }
+
+        async function showFriendProfile(friendId) {
+            try {
+                const friendDoc = await getDoc(doc(db, 'users', friendId));
+                if (!friendDoc.exists()) {
+                    showAlert('Friend profile not found.');
+                    return;
+                }
+                const friendInfo = friendDoc.data();
+
+                document.getElementById('friend-profile-picture').src = friendInfo.photoURL || 'https://placehold.co/100x100/cccccc/000000?text=No+Pic';
+                document.getElementById('friend-profile-name').textContent = friendInfo.name || 'No Name Provided';
+                document.getElementById('friend-profile-email').textContent = friendInfo.email || 'No Email Provided';
+                document.getElementById('friend-profile-about-me').textContent = friendInfo.aboutMe || 'No "About Me" information.';
+
+                const friendPantrySection = document.getElementById('friend-pantry-section');
+                const friendPantryDisplay = document.getElementById('friend-pantry-display');
+                const friendPantryPrivateMessage = document.getElementById('friend-pantry-private-message');
+
+                friendPantryDisplay.innerHTML = '';
+                friendPantrySection.style.display = 'none';
+                friendPantryPrivateMessage.style.display = 'none';
+
+                if (friendInfo.sharePantry) {
+                    friendPantrySection.style.display = 'block';
+                    const pantrySnapshot = await getDocs(collection(db, 'pantries', friendId, 'items'));
+                    if (pantrySnapshot.empty) {
+                        friendPantryDisplay.innerHTML = '<p class="text-muted">This friend\'s pantry is currently empty.</p>';
+                    } else {
+                        pantrySnapshot.forEach(doc => {
+                            const item = doc.data();
+                            const itemDiv = document.createElement('div');
+                            itemDiv.className = 'pantry-item-box';
+                            itemDiv.innerHTML = `
+                                <span>
+                                    ${item.image ? `<img src="${item.image}" alt="${item.name}">` : ''}
+                                    <strong>${item.name}</strong> (Qty: ${item.quantity})
+                                </span>
+                            `;
+                            friendPantryDisplay.appendChild(itemDiv);
+                        });
+                    }
+                } else {
+                    friendPantryPrivateMessage.style.display = 'block';
+                }
+
+                friendProfileModal.show();
+            } catch (error) {
+                console.error('Error showing friend profile:', error);
+                showAlert('Error loading friend profile: ' + error.message);
             }
         }
 
@@ -1538,6 +1859,27 @@
             }
         }
 
+        async function loadAccountSettings() {
+            const user = auth.currentUser;
+            if (!user) {
+                showAlert('Not logged in.');
+                return;
+            }
+            try {
+                const userDoc = await getDoc(doc(db, 'users', user.uid));
+                if (userDoc.exists()) {
+                    const userData = userDoc.data();
+                    document.getElementById('profile-name').value = userData.name || '';
+                    document.getElementById('about-me-input').value = userData.aboutMe || '';
+                    document.getElementById('share-pantry').checked = userData.sharePantry || false;
+                    document.getElementById('current-profile-picture-display').src = userData.photoURL || 'https://placehold.co/80x80/cccccc/000000?text=No+Pic';
+                }
+            } catch (error) {
+                console.error("Error loading account settings:", error);
+                showAlert('Failed to load account settings: ' + error.message);
+            }
+        }
+
         async function saveAccountSettings() {
             const user = auth.currentUser;
             if (!user) {
@@ -1545,6 +1887,7 @@
                 return;
             }
             const profileName = document.getElementById('profile-name').value;
+            const aboutMe = document.getElementById('about-me-input').value;
             const profilePictureFile = document.getElementById('profile-picture').files[0];
             const sharePantry = document.getElementById('share-pantry').checked;
             let photoURL = user.photoURL;
@@ -1565,6 +1908,7 @@
                 await setDoc(doc(db, 'users', user.uid), {
                     name: profileName,
                     photoURL: photoURL,
+                    aboutMe: aboutMe, // Save aboutMe
                     sharePantry: sharePantry,
                     email: user.email.toLowerCase()
                 }, { merge: true });
@@ -1574,6 +1918,12 @@
                 showAlert('Error saving account settings: ' + error.message);
                 console.error("Error saving account settings:", error);
             }
+        }
+
+        async function generateShareableLink(itemId, itemOwnerId) {
+            const shareLink = `${window.location.origin}/?action=shareItem&itemId=${itemId}&ownerId=${itemOwnerId}`;
+            document.getElementById('share-item-link').value = shareLink;
+            shareItemModal.show();
         }
 
         async function logout() {
