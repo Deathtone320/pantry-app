@@ -605,7 +605,7 @@
                 const password = document.getElementById('login-password').value;
                 try {
                     const userCredential = await signInWithEmailAndPassword(auth, email, password);
-                    await ensureUserDocument(userCredential.user); // Ensure user document exists
+                    await ensureUserDocument(userCredential.user);
                 } catch (error) {
                     alert('Login failed: ' + error.message);
                 }
@@ -758,11 +758,7 @@
                     await addFriend(friendId, friendEmail);
                 } else {
                     console.log('No user found in Firestore for email:', email);
-                    // Fallback: Check Firebase Authentication (simulated, as Admin SDK is server-side)
                     console.log('Checking Firebase Authentication for email:', email);
-                    // Note: Client-side Firebase Auth doesn't allow email queries directly.
-                    // For testing, assume we can only rely on Firestore or manual fix.
-                    // In production, you'd use a Cloud Function with Admin SDK.
                     console.log('No user found in Authentication (client-side limitation). Generating invitation link.');
                     const token = Math.random().toString(36).substring(2, 15);
                     const invitationRef = doc(db, 'invitations', `${auth.currentUser.uid}_${token}`);
@@ -817,7 +813,7 @@
         onAuthStateChanged(auth, async user => {
             if (user) {
                 currentPantryUserId = user.uid;
-                await ensureUserDocument(user); // Ensure user document exists on auth state change
+                await ensureUserDocument(user);
                 if (user.emailVerified) {
                     window.showSection('app-section');
                 } else {
@@ -1086,6 +1082,22 @@
             delete window.currentEditingItem;
         }
 
+        async function openRecipe(recipeId) {
+            try {
+                const SPOONACULAR_API_KEY = '43f72f2e87ee4c969804402b3f4a93fa';
+                const response = await axios.get(`https://api.spoonacular.com/recipes/${recipeId}/information?apiKey=${SPOONACULAR_API_KEY}`);
+                const sourceUrl = response.data.sourceUrl;
+                if (sourceUrl) {
+                    window.open(sourceUrl, '_blank');
+                } else {
+                    alert('No source URL available for this recipe.');
+                }
+            } catch (error) {
+                console.error('Error fetching recipe details:', error);
+                alert('Error fetching recipe details: ' + error.message);
+            }
+        }
+
         async function getRecipes() {
             const user = auth.currentUser;
             if (!user) return alert('Not logged in');
@@ -1121,14 +1133,23 @@
                                 </small>
                             </div>
                             ${recipe.image ? `<img src="${recipe.image}" class="rounded mt-2" alt="${recipe.title}">` : ''}
-                            <button class="btn btn-sm btn-success mt-2" data-recipe='${JSON.stringify(recipe)}'>Save Recipe</button>
+                            <div class="mt-2">
+                                <button class="btn btn-sm btn-primary open-recipe-btn" data-recipe-id="${recipe.id}">Open</button>
+                                <button class="btn btn-sm btn-success save-recipe-btn" data-recipe='${JSON.stringify(recipe)}'>Save Recipe</button>
+                            </div>
                         `;
                         foundRecipesDisplay.appendChild(li);
                     });
-                    foundRecipesDisplay.querySelectorAll('.btn-success').forEach(button => {
+                    foundRecipesDisplay.querySelectorAll('.save-recipe-btn').forEach(button => {
                         button.addEventListener('click', (event) => {
                             const recipeData = JSON.parse(event.target.dataset.recipe);
                             saveRecipe(recipeData);
+                        });
+                    });
+                    foundRecipesDisplay.querySelectorAll('.open-recipe-btn').forEach(button => {
+                        button.addEventListener('click', (event) => {
+                            const recipeId = event.target.dataset.recipeId;
+                            openRecipe(recipeId);
                         });
                     });
                 }
@@ -1195,7 +1216,10 @@
                                 </small>
                             </div>
                             ${recipe.image ? `<img src="${recipe.image}" class="rounded mt-2" alt="${recipe.title}">` : ''}
-                            <button class="remove-recipe-btn btn btn-danger btn-sm mt-2" data-recipe-id="${docSnapshot.id}" data-user-id="${userId}">Remove</button>
+                            <div class="mt-2">
+                                <button class="btn btn-sm btn-primary open-recipe-btn" data-recipe-id="${recipe.id}">Open</button>
+                                <button class="remove-recipe-btn btn btn-danger btn-sm" data-recipe-id="${docSnapshot.id}" data-user-id="${userId}">Remove</button>
+                            </div>
                         `;
                         savedRecipesDisplay.appendChild(li);
                     });
@@ -1204,6 +1228,12 @@
                             const recipeId = event.target.dataset.recipeId;
                             const currentUserId = event.target.dataset.userId;
                             removeSavedRecipe(recipeId, currentUserId);
+                        });
+                    });
+                    savedRecipesDisplay.querySelectorAll('.open-recipe-btn').forEach(button => {
+                        button.addEventListener('click', (event) => {
+                            const recipeId = event.target.dataset.recipeId;
+                            openRecipe(recipeId);
                         });
                     });
                 }
