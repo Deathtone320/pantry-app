@@ -480,14 +480,25 @@
                             }
                             try {
                                 const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-                                await sendEmailVerification(userCredential.user);
-                                await setDoc(doc(db, 'users', userCredential.user.uid, 'friends', inviterId), {
+                                const newUser = userCredential.user;
+                                await sendEmailVerification(newUser);
+                                // Save user email in users collection
+                                await setDoc(doc(db, 'users', newUser.uid), {
+                                    email: email,
+                                    name: '',
+                                    sharePantry: false,
+                                    createdAt: new Date()
+                                }, { merge: true });
+                                // Add bidirectional friend relationship
+                                await setDoc(doc(db, 'users', newUser.uid, 'friends', inviterId), {
                                     friendId: inviterId,
+                                    email: (await getDoc(doc(db, 'users', inviterId))).data()?.email || 'Unknown',
                                     synced: false,
                                     timestamp: new Date()
                                 });
-                                await setDoc(doc(db, 'users', inviterId, 'friends', userCredential.user.uid), {
-                                    friendId: userCredential.user.uid,
+                                await setDoc(doc(db, 'users', inviterId, 'friends', newUser.uid), {
+                                    friendId: newUser.uid,
+                                    email: email,
                                     synced: false,
                                     timestamp: new Date()
                                 });
@@ -495,6 +506,7 @@
                                 alert('Registration successful! Please verify your email to continue.');
                                 window.showSection('verify-email-section');
                             } catch (error) {
+                                console.error("Registration failed:", error);
                                 alert('Registration failed: ' + error.message);
                             }
                         };
@@ -558,8 +570,14 @@
                     return;
                 }
                 try {
-                    await createUserWithEmailAndPassword(auth, email, password);
-                    await sendEmailVerification(auth.currentUser);
+                    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                    await sendEmailVerification(userCredential.user);
+                    await setDoc(doc(db, 'users', userCredential.user.uid), {
+                        email: email,
+                        name: '',
+                        sharePantry: false,
+                        createdAt: new Date()
+                    }, { merge: true });
                     alert('Verification email sent. Please check your inbox.');
                     window.showSection('verify-email-section');
                 } catch (error) {
@@ -812,7 +830,7 @@
                 pantryItemsDisplay.innerHTML = '<p class="text-center text-muted">Loading pantry items...</p>';
 
                 const ownerDoc = await getDoc(doc(db, 'users', pantryOwnerId));
-                const ownerEmail = ownerDoc.exists() ? ownerDoc.data().name || ownerDoc.data().email : 'Unknown User';
+                const ownerEmail = ownerDoc.exists() ? ownerDoc.data().name || ownerDoc.data().email || 'Unknown User' : 'Unknown User';
                 document.getElementById('current-pantry-owner').textContent = `Viewing Pantry: ${ownerEmail}`;
 
                 const querySnapshot = await getDocs(collection(db, 'pantries', pantryOwnerId, 'items'));
@@ -1075,7 +1093,8 @@
                             continue;
                         }
                         const friendDoc = await getDoc(doc(db, 'users', friendData.friendId));
-                        const friendEmail = friendDoc.exists() ? friendDoc.data().email : 'Unknown User';
+                        const friendInfo = friendDoc.exists() ? friendDoc.data() : {};
+                        const friendDisplay = friendInfo.name || friendInfo.email || friendData.email || 'Unknown User';
                         const li = document.createElement('li');
                         li.className = 'list-group-item d-flex justify-content-between align-items-center';
                         li.innerHTML = `
@@ -1085,7 +1104,7 @@
                                     ${friendData.synced ? 'checked' : ''}
                                     data-user-id="${userId}">
                                 <label class="form-check-label" for="friend-${friendData.friendId}-checkbox">
-                                    ${friendEmail} (Synced: ${friendData.synced ? 'Yes' : 'No'})
+                                    ${friendDisplay} (Synced: ${friendData.synced ? 'Yes' : 'No'})
                                 </label>
                             </div>
                             <button class="remove-friend-btn" data-friend-id="${friendData.friendId}" data-user-id="${userId}">×</button>
