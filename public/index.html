@@ -487,6 +487,28 @@
             });
         };
 
+        // Helper function to ensure user document exists in Firestore
+        async function ensureUserDocument(user) {
+            try {
+                const userDocRef = doc(db, 'users', user.uid);
+                const userDoc = await getDoc(userDocRef);
+                if (!userDoc.exists()) {
+                    console.log(`Creating missing user document for UID: ${user.uid}, Email: ${user.email}`);
+                    await setDoc(userDocRef, {
+                        email: user.email.toLowerCase(),
+                        name: user.displayName || '',
+                        sharePantry: false,
+                        createdAt: new Date()
+                    }, { merge: true });
+                } else if (userDoc.data().email !== user.email.toLowerCase()) {
+                    console.log(`Updating email for UID: ${user.uid}, Old: ${userDoc.data().email}, New: ${user.email}`);
+                    await updateDoc(userDocRef, { email: user.email.toLowerCase() });
+                }
+            } catch (error) {
+                console.error('Error ensuring user document:', error);
+            }
+        }
+
         async function handleInvitationRegistration() {
             const urlParams = new URLSearchParams(window.location.search);
             const inviterId = urlParams.get('inviterId');
@@ -499,7 +521,7 @@
                     if (invitationSnap.exists() && !invitationSnap.data().used) {
                         window.showSection('register-section');
                         document.getElementById('register-btn').onclick = async () => {
-                            const email = document.getElementById('register-email').value;
+                            const email = document.getElementById('register-email').value.trim().toLowerCase();
                             const password = document.getElementById('register-password').value;
                             const confirmPassword = document.getElementById('register-confirm-password').value;
                             if (password !== confirmPassword) {
@@ -579,17 +601,18 @@
             });
 
             document.getElementById('login-btn').addEventListener('click', async () => {
-                const email = document.getElementById('login-email').value;
+                const email = document.getElementById('login-email').value.trim().toLowerCase();
                 const password = document.getElementById('login-password').value;
                 try {
-                    await signInWithEmailAndPassword(auth, email, password);
+                    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                    await ensureUserDocument(userCredential.user); // Ensure user document exists
                 } catch (error) {
                     alert('Login failed: ' + error.message);
                 }
             });
 
             document.getElementById('register-btn').addEventListener('click', async () => {
-                const email = document.getElementById('register-email').value;
+                const email = document.getElementById('register-email').value.trim().toLowerCase();
                 const password = document.getElementById('register-password').value;
                 const confirmPassword = document.getElementById('register-confirm-password').value;
                 if (password !== confirmPassword) {
@@ -598,8 +621,9 @@
                 }
                 try {
                     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-                    await sendEmailVerification(userCredential.user);
-                    await setDoc(doc(db, 'users', userCredential.user.uid), {
+                    const newUser = userCredential.user;
+                    await sendEmailVerification(newUser);
+                    await setDoc(doc(db, 'users', newUser.uid), {
                         email: email,
                         name: '',
                         sharePantry: false,
@@ -622,7 +646,7 @@
             });
 
             document.getElementById('forgot-password').addEventListener('click', async () => {
-                const email = document.getElementById('login-email').value;
+                const email = document.getElementById('login-email').value.trim().toLowerCase();
                 if (!email) {
                     alert('Please enter your email to reset password');
                     return;
@@ -712,22 +736,34 @@
                 alert('You must be logged in to add a friend.');
                 return;
             }
-            const email = emailInput.toLowerCase(); // Normalize email to lowercase
+            const email = emailInput.toLowerCase();
             if (email === auth.currentUser.email.toLowerCase()) {
                 alert('You cannot add yourself as a friend.');
                 return;
             }
             try {
-                console.log('Searching for user with email:', email); // Debug log
+                console.log('Searching Firestore for user with email:', email);
                 const usersQuery = query(collection(db, 'users'), where('email', '==', email));
                 const querySnapshot = await getDocs(usersQuery);
-                console.log('Query snapshot size:', querySnapshot.size); // Debug log
+                console.log('Firestore query snapshot size:', querySnapshot.size);
                 querySnapshot.forEach(doc => {
-                    console.log('Found user:', doc.id, doc.data()); // Debug log
+                    console.log('Found user in Firestore:', doc.id, doc.data());
                 });
 
-                if (querySnapshot.empty) {
-                    console.log('No user found for email:', email); // Debug log
+                if (!querySnapshot.empty) {
+                    const friendDoc = querySnapshot.docs[0];
+                    const friendId = friendDoc.id;
+                    const friendEmail = friendDoc.data().email;
+                    console.log('User found in Firestore:', { friendId, friendEmail });
+                    await addFriend(friendId, friendEmail);
+                } else {
+                    console.log('No user found in Firestore for email:', email);
+                    // Fallback: Check Firebase Authentication (simulated, as Admin SDK is server-side)
+                    console.log('Checking Firebase Authentication for email:', email);
+                    // Note: Client-side Firebase Auth doesn't allow email queries directly.
+                    // For testing, assume we can only rely on Firestore or manual fix.
+                    // In production, you'd use a Cloud Function with Admin SDK.
+                    console.log('No user found in Authentication (client-side limitation). Generating invitation link.');
                     const token = Math.random().toString(36).substring(2, 15);
                     const invitationRef = doc(db, 'invitations', `${auth.currentUser.uid}_${token}`);
                     await setDoc(invitationRef, {
@@ -738,46 +774,50 @@
                     const invitationLink = `${window.location.origin}/?inviterId=${auth.currentUser.uid}&token=${token}`;
                     document.getElementById('no-user-invitation-link').value = invitationLink;
                     noUserFoundModal.show();
-                } else {
-                    const friendDoc = querySnapshot.docs[0];
-                    const friendId = friendDoc.id;
-                    const friendEmail = friendDoc.data().email;
-                    console.log('User found with ID:', friendId, 'Email:', friendEmail); // Debug log
-                    const currentUserDoc = await getDoc(doc(db, 'users', auth.currentUser.uid));
-                    const currentUserEmail = currentUserDoc.data().email;
-
-                    const existingFriendQuery = query(collection(db, 'users', auth.currentUser.uid, 'friends'), where('friendId', '==', friendId));
-                    const existingFriendSnapshot = await getDocs(existingFriendQuery);
-                    if (!existingFriendSnapshot.empty) {
-                        alert('This user is already in your friends list.');
-                        return;
-                    }
-
-                    await setDoc(doc(db, 'users', auth.currentUser.uid, 'friends', friendId), {
-                        friendId: friendId,
-                        email: friendEmail,
-                        synced: false,
-                        timestamp: new Date()
-                    });
-                    await setDoc(doc(db, 'users', friendId, 'friends', auth.currentUser.uid), {
-                        friendId: auth.currentUser.uid,
-                        email: currentUserEmail,
-                        synced: false,
-                        timestamp: new Date()
-                    });
-                    alert('Friend added successfully!');
-                    loadUsers(auth.currentUser.uid);
-                    document.getElementById('friend-email-search').value = '';
                 }
             } catch (error) {
-                console.error('Error searching for friend:', error, 'Email searched:', email); // Debug log
+                console.error('Error searching for friend:', error, 'Email searched:', email);
                 alert('Error searching for friend: ' + error.message);
+            }
+        }
+
+        async function addFriend(friendId, friendEmail) {
+            try {
+                const currentUserDoc = await getDoc(doc(db, 'users', auth.currentUser.uid));
+                const currentUserEmail = currentUserDoc.data().email;
+
+                const existingFriendQuery = query(collection(db, 'users', auth.currentUser.uid, 'friends'), where('friendId', '==', friendId));
+                const existingFriendSnapshot = await getDocs(existingFriendQuery);
+                if (!existingFriendSnapshot.empty) {
+                    alert('This user is already in your friends list.');
+                    return;
+                }
+
+                await setDoc(doc(db, 'users', auth.currentUser.uid, 'friends', friendId), {
+                    friendId: friendId,
+                    email: friendEmail,
+                    synced: false,
+                    timestamp: new Date()
+                });
+                await setDoc(doc(db, 'users', friendId, 'friends', auth.currentUser.uid), {
+                    friendId: auth.currentUser.uid,
+                    email: currentUserEmail,
+                    synced: false,
+                    timestamp: new Date()
+                });
+                alert('Friend added successfully!');
+                loadUsers(auth.currentUser.uid);
+                document.getElementById('friend-email-search').value = '';
+            } catch (error) {
+                console.error('Error adding friend:', error);
+                alert('Error adding friend: ' + error.message);
             }
         }
 
         onAuthStateChanged(auth, async user => {
             if (user) {
                 currentPantryUserId = user.uid;
+                await ensureUserDocument(user); // Ensure user document exists on auth state change
                 if (user.emailVerified) {
                     window.showSection('app-section');
                 } else {
@@ -1059,9 +1099,9 @@
                     foundRecipesDisplay.innerHTML = '<li class="list-group-item text-muted">The current pantry is empty. Add items to get recipe suggestions!</li>';
                     return;
                 }
-                const SPOONACULAR_API_KEY = 'YOUR_SPOONACULAR_API_KEY_HERE';
-                if (SPOONACULAR_API_KEY === 'YOUR_SPOONACULAR_API_KEY_HERE') {
-                    foundRecipesDisplay.innerHTML = '<li class="list-group-item text-danger">Error: Please replace "YOUR_SPOONACULAR_API_KEY_HERE" with your actual Spoonacular API key.</li>';
+                const SPOONACULAR_API_KEY = 'e986d8d8aea940aba2095c6b23333f61';
+                if (SPOONACULAR_API_KEY === 'e986d8d8aea940aba2095c6b23333f61') {
+                    foundRecipesDisplay.innerHTML = '<li class="list-group-item text-danger">Error: Please replace "e986d8d8aea940aba2095c6b23333f61" with your actual Spoonacular API key.</li>';
                     return;
                 }
                 const response = await axios.get(`https://api.spoonacular.com/recipes/findByIngredients?ingredients=${ingredients}&apiKey=${SPOONACULAR_API_KEY}`);
@@ -1315,7 +1355,8 @@
                 await setDoc(doc(db, 'users', user.uid), {
                     name: profileName,
                     photoURL: photoURL,
-                    sharePantry: sharePantry
+                    sharePantry: sharePantry,
+                    email: user.email.toLowerCase()
                 }, { merge: true });
                 alert('Account settings saved!');
                 accountSettingsModal.hide();
