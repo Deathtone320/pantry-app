@@ -184,7 +184,10 @@
         #confirmation-modal .modal-body,
         #info-modal .modal-body,
         #share-item-modal .modal-body, /* Added share-item-modal */
-        #friend-profile-modal .modal-body { /* Added friend-profile-modal */
+        #friend-profile-modal .modal-body, /* Added friend-profile-modal */
+        #create-recipe-modal .modal-body, /* New: Create Recipe Modal */
+        #manage-my-recipes-modal .modal-body, /* New: Manage My Recipes Modal */
+        #shared-recipe-details-modal .modal-body { /* New: Shared Recipe Details Modal */
             padding: 20px;
             text-align: center;
         }
@@ -318,6 +321,62 @@
             object-fit: cover;
             border: none; /* Override default img border */
         }
+        /* New styles for recipe creation and display */
+        .recipe-form-group {
+            margin-bottom: 15px;
+            text-align: left;
+        }
+        .recipe-form-group label {
+            font-weight: bold;
+            margin-bottom: 5px;
+            display: block;
+        }
+        .recipe-form-group textarea {
+            min-height: 80px;
+        }
+        .recipe-display-box {
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            background-color: #fff;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            text-align: left;
+        }
+        .recipe-display-box h5 {
+            color: #007bff;
+            margin-bottom: 10px;
+        }
+        .recipe-display-box img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin-top: 10px;
+            margin-bottom: 10px;
+        }
+        .recipe-display-box p {
+            margin-bottom: 5px;
+        }
+        .recipe-display-box .meta-info {
+            font-size: 0.9em;
+            color: #6c757d;
+            margin-top: 10px;
+        }
+        .recipe-display-box .public-status {
+            font-size: 0.8em;
+            padding: 3px 8px;
+            border-radius: 5px;
+            margin-left: 10px;
+            font-weight: bold;
+        }
+        .public-status-yes {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .public-status-no {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
     </style>
 </head>
 <body>
@@ -439,7 +498,10 @@
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
-                        <button class="btn btn-primary mb-3" id="find-recipe-btn">Find me a Recipe</button>
+                        <div class="d-flex justify-content-between mb-3">
+                            <button class="btn btn-primary me-2" id="find-recipe-btn">Find me a Recipe</button>
+                            <button class="btn btn-success" id="create-recipe-btn">Create a Recipe</button>
+                        </div>
                         <hr>
                         <h4 class="mb-3">Found Recipes</h4>
                         <div id="found-recipes-display" class="mb-4"></div>
@@ -453,6 +515,117 @@
                 </div>
             </div>
         </div>
+
+        <!-- Create Recipe Modal -->
+        <div id="create-recipe-modal" class="modal fade" tabindex="-1" aria-labelledby="createRecipeLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="createRecipeLabel">Create New Recipe</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body text-start">
+                        <input type="hidden" id="recipe-id-to-edit">
+                        <div class="recipe-form-group">
+                            <label for="recipe-name">Recipe Name</label>
+                            <input type="text" id="recipe-name" class="form-control" placeholder="e.g., Delicious Chicken Curry" required>
+                        </div>
+                        <div class="recipe-form-group">
+                            <label for="recipe-description">Description</label>
+                            <textarea id="recipe-description" class="form-control" rows="3" placeholder="A brief description of your recipe..."></textarea>
+                        </div>
+                        <div class="recipe-form-group">
+                            <label for="recipe-ingredients">Ingredients (one per line or comma-separated)</label>
+                            <textarea id="recipe-ingredients" class="form-control" rows="5" placeholder="e.g.,&#10;2 chicken breasts&#10;1 onion&#10;1 tbsp curry powder"></textarea>
+                        </div>
+                        <div class="recipe-form-group">
+                            <label for="recipe-instructions">Instructions</label>
+                            <textarea id="recipe-instructions" class="form-control" rows="7" placeholder="Step-by-step cooking instructions..."></textarea>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4 recipe-form-group">
+                                <label for="recipe-prep-time">Prep Time</label>
+                                <input type="text" id="recipe-prep-time" class="form-control" placeholder="e.g., 15 min">
+                            </div>
+                            <div class="col-md-4 recipe-form-group">
+                                <label for="recipe-cook-time">Cook Time</label>
+                                <input type="text" id="recipe-cook-time" class="form-control" placeholder="e.g., 30 min">
+                            </div>
+                            <div class="col-md-4 recipe-form-group">
+                                <label for="recipe-servings">Servings</label>
+                                <input type="text" id="recipe-servings" class="form-control" placeholder="e.g., 4">
+                            </div>
+                        </div>
+                        <div class="recipe-form-group">
+                            <label for="recipe-image">Recipe Image</label>
+                            <input type="file" id="recipe-image" class="form-control" accept="image/*">
+                            <img id="current-recipe-image-display" src="" alt="Current Recipe Image" class="img-fluid rounded mt-2" style="max-height: 150px; display: none;">
+                        </div>
+                        <div class="form-check recipe-form-group">
+                            <input class="form-check-input" type="checkbox" id="recipe-share-public">
+                            <label class="form-check-label" for="recipe-share-public">Make this recipe public (others can find it)</label>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-primary" id="save-recipe-btn">Save Recipe</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Manage My Recipes Modal -->
+        <div id="manage-my-recipes-modal" class="modal fade" tabindex="-1" aria-labelledby="manageMyRecipesLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="manageMyRecipesLabel">My Created Recipes</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div id="user-created-recipes-display">
+                            <p class="text-center text-muted">No recipes created yet.</p>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Shared Recipe Details Modal -->
+        <div id="shared-recipe-details-modal" class="modal fade" tabindex="-1" aria-labelledby="sharedRecipeDetailsLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="sharedRecipeDetailsLabel">Shared Recipe</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body text-start">
+                        <h5 id="shared-recipe-name" class="text-center mb-3"></h5>
+                        <img id="shared-recipe-image" src="" alt="Recipe Image" class="img-fluid rounded mb-3" style="max-height: 200px; display: none; margin: 0 auto;">
+                        <p id="shared-recipe-description" class="text-muted text-center"></p>
+                        <div class="row text-center mb-3">
+                            <div class="col"><small><strong>Prep:</strong> <span id="shared-recipe-prep-time"></span></small></div>
+                            <div class="col"><small><strong>Cook:</strong> <span id="shared-recipe-cook-time"></span></small></div>
+                            <div class="col"><small><strong>Servings:</strong> <span id="shared-recipe-servings"></span></small></div>
+                        </div>
+                        <h6>Ingredients:</h6>
+                        <pre id="shared-recipe-ingredients" class="bg-light p-2 rounded"></pre>
+                        <h6>Instructions:</h6>
+                        <pre id="shared-recipe-instructions" class="bg-light p-2 rounded"></pre>
+                        <div class="text-center mt-3">
+                            <button class="btn btn-primary" id="save-shared-recipe-to-my-recipes-btn">Save this Recipe</button>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
 
         <!-- Account Settings Modal -->
         <div id="account-settings-modal" class="modal fade" tabindex="-1" aria-labelledby="accountSettingsLabel" aria-hidden="true">
@@ -662,6 +835,7 @@
                     <button type="button" class="list-group-item list-group-item-action" id="offcanvas-account-settings-link">Account Settings</button>
                     <button type="button" class="list-group-item list-group-item-action" id="offcanvas-add-user-btn">Invite</button>
                     <button type="button" class="list-group-item list-group-item-action" id="offcanvas-manage-access-btn">Manage Friends</button>
+                    <button type="button" class="list-group-item list-group-item-action" id="offcanvas-manage-my-recipes-btn">Manage My Recipes</button>
                     <button type="button" class="list-group-item list-group-item-action" id="offcanvas-download-btn">Download</button>
                     <button type="button" class="list-group-item list-group-item-action text-danger" id="offcanvas-logout-link">Log Out</button>
                 </div>
@@ -703,10 +877,14 @@
         let infoModal; // Added info modal
         let shareItemModal; // New: Share Item Modal
         let friendProfileModal; // New: Friend Profile Modal
+        let createRecipeModal; // New: Create Recipe Modal
+        let manageMyRecipesModal; // New: Manage My Recipes Modal
+        let sharedRecipeDetailsModal; // New: Shared Recipe Details Modal
 
         let currentItemToAdd = null;
         let currentPantryUserId = null;
         let deferredPrompt = null;
+        let currentSharedRecipeData = null; // To hold data for shared recipe before saving
 
         // Custom alert function
         function showAlert(message) {
@@ -811,6 +989,12 @@
                                 if (sharedItemId && sharedItemOwnerId) {
                                     await addItemFromShare(sharedItemId, sharedItemOwnerId, newUser.uid);
                                 }
+                                // Check for shared recipe after registration
+                                const sharedRecipeId = urlParams.get('recipeId');
+                                const sharedRecipeOwnerId = urlParams.get('ownerId');
+                                if (sharedRecipeId && sharedRecipeOwnerId) {
+                                    await saveSharedRecipeToMyPantry(sharedRecipeId, sharedRecipeOwnerId, newUser.uid);
+                                }
 
                             } catch (error) {
                                 console.error("Registration failed:", error);
@@ -901,6 +1085,99 @@
             }
         }
 
+        async function handleSharedRecipeLink() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const action = urlParams.get('action');
+            const recipeId = urlParams.get('recipeId');
+            const ownerId = urlParams.get('ownerId');
+
+            if (action === 'shareRecipe' && recipeId && ownerId) {
+                try {
+                    const recipeDoc = await getDoc(doc(db, 'user_created_recipes', recipeId));
+                    if (recipeDoc.exists() && recipeDoc.data().isPublic) {
+                        currentSharedRecipeData = { id: recipeDoc.id, ...recipeDoc.data() };
+                        displaySharedRecipeDetails(currentSharedRecipeData);
+                        sharedRecipeDetailsModal.show();
+                    } else {
+                        showAlert('Shared recipe not found or is private.');
+                    }
+                } catch (error) {
+                    console.error('Error handling shared recipe link:', error);
+                    showAlert('Error loading shared recipe: ' + error.message);
+                }
+            }
+        }
+
+        function displaySharedRecipeDetails(recipe) {
+            document.getElementById('shared-recipe-name').textContent = recipe.name || 'Untitled Recipe';
+            document.getElementById('shared-recipe-description').textContent = recipe.description || 'No description provided.';
+            document.getElementById('shared-recipe-prep-time').textContent = recipe.prepTime || 'N/A';
+            document.getElementById('shared-recipe-cook-time').textContent = recipe.cookTime || 'N/A';
+            document.getElementById('shared-recipe-servings').textContent = recipe.servings || 'N/A';
+            document.getElementById('shared-recipe-ingredients').textContent = recipe.ingredients || 'No ingredients listed.';
+            document.getElementById('shared-recipe-instructions').textContent = recipe.instructions || 'No instructions provided.';
+
+            const recipeImage = document.getElementById('shared-recipe-image');
+            if (recipe.imageUrl) {
+                recipeImage.src = recipe.imageUrl;
+                recipeImage.style.display = 'block';
+            } else {
+                recipeImage.src = '';
+                recipeImage.style.display = 'none';
+            }
+
+            document.getElementById('save-shared-recipe-to-my-recipes-btn').onclick = async () => {
+                if (auth.currentUser) {
+                    await saveSharedRecipeToMyPantry(recipe.id, recipe.userId, auth.currentUser.uid);
+                    sharedRecipeDetailsModal.hide();
+                    // Clear URL parameters after successful addition
+                    const newUrl = window.location.origin + window.location.pathname;
+                    window.history.replaceState({}, document.title, newUrl);
+                } else {
+                    showAlert('You need to be logged in or register to save this recipe.');
+                    // Redirect to registration with recipe details in URL
+                    const registrationUrl = `${window.location.origin}/?action=shareRecipe&recipeId=${recipe.id}&ownerId=${recipe.userId}#register`;
+                    window.location.href = registrationUrl;
+                }
+            };
+        }
+
+        async function saveSharedRecipeToMyPantry(sharedRecipeId, sharedRecipeOwnerId, targetUserId) {
+            try {
+                const recipeDoc = await getDoc(doc(db, 'user_created_recipes', sharedRecipeId));
+                if (recipeDoc.exists() && recipeDoc.data().isPublic) {
+                    const recipeData = recipeDoc.data();
+                    const savedRecipesRef = collection(db, 'users', targetUserId, 'saved_recipes');
+                    const q = query(savedRecipesRef, where("id", "==", recipeData.id)); // Check if already saved
+                    const querySnapshot = await getDocs(q);
+
+                    if (!querySnapshot.empty) {
+                        showAlert('This recipe is already in your saved recipes!');
+                        return;
+                    }
+
+                    await addDoc(savedRecipesRef, {
+                        id: recipeDoc.id, // Use the original ID for tracking
+                        title: recipeData.name, // Use 'name' from created recipe as 'title' for saved
+                        image: recipeData.imageUrl || '',
+                        usedIngredientCount: 0, // N/A for user-created, can be derived if parsed
+                        missedIngredientCount: 0, // N/A for user-created
+                        savedAt: new Date(),
+                        originalRecipeId: recipeDoc.id, // Link back to the original created recipe
+                        originalRecipeOwnerId: sharedRecipeOwnerId,
+                        isUserCreated: true // Flag to distinguish from Spoonacular recipes
+                    });
+                    showAlert(`'${recipeData.name}' saved to your recipes!`);
+                } else {
+                    showAlert('Shared recipe not found or is private.');
+                }
+            } catch (error) {
+                console.error('Error saving shared recipe to pantry:', error);
+                showAlert('Failed to save shared recipe to your recipes: ' + error.message);
+            }
+        }
+
+
         document.addEventListener('DOMContentLoaded', function() {
             manualAddItemModal = new bootstrap.Modal(document.getElementById('manual-add-item-modal'));
             locationInputModal = new bootstrap.Modal(document.getElementById('location-input-modal'));
@@ -916,6 +1193,9 @@
             infoModal = new bootstrap.Modal(document.getElementById('info-modal')); // Initialize info modal
             shareItemModal = new bootstrap.Modal(document.getElementById('share-item-modal')); // Initialize share item modal
             friendProfileModal = new bootstrap.Modal(document.getElementById('friend-profile-modal')); // Initialize friend profile modal
+            createRecipeModal = new bootstrap.Modal(document.getElementById('create-recipe-modal')); // New: Create Recipe Modal
+            manageMyRecipesModal = new bootstrap.Modal(document.getElementById('manage-my-recipes-modal')); // New: Manage My Recipes Modal
+            sharedRecipeDetailsModal = new bootstrap.Modal(document.getElementById('shared-recipe-details-modal')); // New: Shared Recipe Details Modal
 
 
             var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
@@ -1003,6 +1283,12 @@
                     if (sharedItemId && sharedItemOwnerId) {
                         await addItemFromShare(sharedItemId, sharedItemOwnerId, newUser.uid);
                     }
+                    // Check for shared recipe after registration
+                    const sharedRecipeId = urlParams.get('recipeId');
+                    const sharedRecipeOwnerId = urlParams.get('ownerId');
+                    if (sharedRecipeId && sharedRecipeOwnerId) {
+                        await saveSharedRecipeToMyPantry(sharedRecipeId, sharedRecipeOwnerId, newUser.uid);
+                    }
 
                 } catch (error) {
                     console.error("Registration failed:", error);
@@ -1051,6 +1337,8 @@
                 renderPantryItemsByLocation(currentPantryUserId, event.target.value);
             });
             document.getElementById('find-recipe-btn').addEventListener('click', getRecipes);
+            document.getElementById('create-recipe-btn').addEventListener('click', showCreateRecipeModal); // New: Create Recipe button handler
+            document.getElementById('save-recipe-btn').addEventListener('click', saveCreatedRecipe); // New: Save Created Recipe handler
             document.getElementById('saved-recipes-search-bar').addEventListener('input', (event) => {
                 loadSavedRecipes(auth.currentUser.uid, event.target.value);
             });
@@ -1082,6 +1370,11 @@
                 userManagementModal.show();
                 loadUsers(auth.currentUser.uid);
             });
+            document.getElementById('offcanvas-manage-my-recipes-btn').addEventListener('click', () => { // New: Manage My Recipes button handler
+                settingsOffcanvas.hide();
+                manageMyRecipesModal.show();
+                renderUserCreatedRecipes(auth.currentUser.uid);
+            });
             document.getElementById('offcanvas-download-btn').addEventListener('click', downloadShortcut);
             document.getElementById('offcanvas-logout-link').addEventListener('click', logout);
             document.getElementById('save-quantity-btn').addEventListener('click', saveQuantity);
@@ -1108,6 +1401,7 @@
 
             handleInvitationRegistration();
             handleSharedItem(); // Call this on DOMContentLoaded to check for shared item links
+            handleSharedRecipeLink(); // New: Call this on DOMContentLoaded to check for shared recipe links
         });
 
         async function downloadShortcut() {
@@ -1232,10 +1526,16 @@
                     const urlParams = new URLSearchParams(window.location.search);
                     const action = urlParams.get('action');
                     const itemId = urlParams.get('itemId');
-                    const ownerId = urlParams.get('ownerId');
+                    const ownerId = url.get('ownerId'); // Corrected to use url.get
+                    const recipeId = urlParams.get('recipeId');
+
                     if (action === 'shareItem' && itemId && ownerId) {
                         await addItemFromShare(itemId, ownerId, user.uid);
                         // Clear URL parameters after successful addition
+                        const newUrl = window.location.origin + window.location.pathname;
+                        window.history.replaceState({}, document.title, newUrl);
+                    } else if (action === 'shareRecipe' && recipeId && ownerId) {
+                        await saveSharedRecipeToMyPantry(recipeId, ownerId, user.uid);
                         const newUrl = window.location.origin + window.location.pathname;
                         window.history.replaceState({}, document.title, newUrl);
                     }
@@ -1517,15 +1817,26 @@
             delete window.currentEditingItem;
         }
 
-        async function openRecipe(recipeId) {
+        async function openRecipe(recipeId, isUserCreated = false) {
             try {
-                const SPOONACULAR_API_KEY = '43f72f2e87ee4c969804402b3f4a93fa'; // Replace with your actual Spoonacular API key
-                const response = await axios.get(`https://api.spoonacular.com/recipes/${recipeId}/information?apiKey=${SPOONACULAR_API_KEY}`);
-                const sourceUrl = response.data.sourceUrl;
-                if (sourceUrl) {
-                    window.open(sourceUrl, '_blank');
+                if (isUserCreated) {
+                    const recipeDoc = await getDoc(doc(db, 'user_created_recipes', recipeId));
+                    if (recipeDoc.exists()) {
+                        displaySharedRecipeDetails({ id: recipeDoc.id, ...recipeDoc.data() });
+                        sharedRecipeDetailsModal.show();
+                        document.getElementById('save-shared-recipe-to-my-recipes-btn').style.display = 'none'; // Hide save button for own created recipes
+                    } else {
+                        showAlert('Recipe not found.');
+                    }
                 } else {
-                    showAlert('No source URL available for this recipe.');
+                    const SPOONACULAR_API_KEY = '43f72f2e87ee4c969804402b3f4a93fa'; // Replace with your actual Spoonacular API key
+                    const response = await axios.get(`https://api.spoonacular.com/recipes/${recipeId}/information?apiKey=${SPOONACULAR_API_KEY}`);
+                    const sourceUrl = response.data.sourceUrl;
+                    if (sourceUrl) {
+                        window.open(sourceUrl, '_blank');
+                    } else {
+                        showAlert('No source URL available for this recipe.');
+                    }
                 }
             } catch (error) {
                 console.error('Error fetching recipe details:', error);
@@ -1542,35 +1853,46 @@
             try {
                 const querySnapshot = await getDocs(collection(db, 'pantries', currentPantryUserId, 'items'));
                 const ingredients = querySnapshot.docs.map(doc => doc.data().name).join(',');
-                if (!ingredients) {
-                    foundRecipesDisplay.innerHTML = '<li class="list-group-item text-muted">The current pantry is empty. Add items to get recipe suggestions!</li>';
-                    return;
+
+                let spoonacularRecipes = [];
+                if (ingredients) {
+                    const SPOONACULAR_API_KEY = '43f72f2e87ee4c969804402b3f4a93fa'; // Replace with your actual Spoonacular API key
+                    if (SPOONACULAR_API_KEY === 'YOUR_SPOONACULAR_API_KEY_HERE') {
+                        foundRecipesDisplay.innerHTML = '<li class="list-group-item text-danger">Error: Please replace "YOUR_SPOONACULAR_API_KEY_HERE" with your actual Spoonacular API key.</li>';
+                        return;
+                    }
+                    const response = await axios.get(`https://api.spoonacular.com/recipes/findByIngredients?ingredients=${ingredients}&apiKey=${SPOONACULAR_API_KEY}`);
+                    spoonacularRecipes = response.data.map(recipe => ({ ...recipe, type: 'spoonacular' }));
                 }
-                const SPOONACULAR_API_KEY = '43f72f2e87ee4c969804402b3f4a93fa'; // Replace with your actual Spoonacular API key
-                if (SPOONACULAR_API_KEY === 'YOUR_SPOONACULAR_API_KEY_HERE') {
-                    foundRecipesDisplay.innerHTML = '<li class="list-group-item text-danger">Error: Please replace "YOUR_SPOONACULAR_API_KEY_HERE" with your actual Spoonacular API key.</li>';
-                    return;
-                }
-                const response = await axios.get(`https://api.spoonacular.com/recipes/findByIngredients?ingredients=${ingredients}&apiKey=${SPOONACULAR_API_KEY}`);
+
+                // Fetch public user-created recipes
+                const publicRecipesSnapshot = await getDocs(query(collection(db, 'user_created_recipes'), where('isPublic', '==', true)));
+                const publicUserRecipes = publicRecipesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), type: 'user-created' }));
+
+                const allFoundRecipes = [...spoonacularRecipes, ...publicUserRecipes];
+
                 foundRecipesDisplay.innerHTML = '';
-                if (response.data.length === 0) {
-                    foundRecipesDisplay.innerHTML = '<li class="list-group-item text-muted">No recipes found with items from the current pantry. Try adding more!</li>';
+                if (allFoundRecipes.length === 0) {
+                    foundRecipesDisplay.innerHTML = '<li class="list-group-item text-muted">No recipes found. Try adding more pantry items or creating your own recipes!</li>';
                 } else {
-                    response.data.forEach(recipe => {
+                    allFoundRecipes.forEach(recipe => {
                         const li = document.createElement('li');
                         li.className = 'list-group-item recipe-item-box';
+                        // Determine if it's a Spoonacular or user-created recipe for display and save logic
+                        const isSpoonacular = recipe.type === 'spoonacular';
+                        const recipeTitle = isSpoonacular ? recipe.title : recipe.name;
+                        const recipeImage = isSpoonacular ? recipe.image : recipe.imageUrl;
+                        const recipeId = recipe.id;
+
                         li.innerHTML = `
                             <div>
-                                <strong>${recipe.title}</strong><br>
-                                <small>
-                                    Used Ingredients: ${recipe.usedIngredientCount}<br>
-                                    Missing Ingredients: ${recipe.missedIngredientCount}
-                                </small>
+                                <strong>${recipeTitle}</strong><br>
+                                ${isSpoonacular ? `<small>Used Ingredients: ${recipe.usedIngredientCount}<br>Missing Ingredients: ${recipe.missedIngredientCount}</small>` : `<small>Created by: ${recipe.creatorEmail || 'You'}</small>`}
                             </div>
-                            ${recipe.image ? `<img src="${recipe.image}" class="rounded mt-2" alt="${recipe.title}">` : ''}
+                            ${recipeImage ? `<img src="${recipeImage}" class="rounded mt-2" alt="${recipeTitle}">` : ''}
                             <div class="mt-2">
-                                <button class="btn btn-sm btn-primary open-recipe-btn" data-recipe-id="${recipe.id}">Open</button>
-                                <button class="btn btn-sm btn-success save-recipe-btn" data-recipe='${JSON.stringify(recipe)}'>Save Recipe</button>
+                                <button class="btn btn-sm btn-primary open-recipe-btn" data-recipe-id="${recipeId}" data-is-user-created="${!isSpoonacular}">Open</button>
+                                <button class="btn btn-sm btn-success save-recipe-btn" data-recipe='${JSON.stringify(recipe)}' data-is-user-created="${!isSpoonacular}">Save Recipe</button>
                             </div>
                         `;
                         foundRecipesDisplay.appendChild(li);
@@ -1578,13 +1900,19 @@
                     foundRecipesDisplay.querySelectorAll('.save-recipe-btn').forEach(button => {
                         button.addEventListener('click', (event) => {
                             const recipeData = JSON.parse(event.target.dataset.recipe);
-                            saveRecipe(recipeData);
+                            const isUserCreated = event.target.dataset.isUserCreated === 'true';
+                            if (isUserCreated) {
+                                saveSharedRecipeToMyPantry(recipeData.id, recipeData.userId, auth.currentUser.uid);
+                            } else {
+                                saveRecipe(recipeData); // For Spoonacular recipes
+                            }
                         });
                     });
                     foundRecipesDisplay.querySelectorAll('.open-recipe-btn').forEach(button => {
                         button.addEventListener('click', (event) => {
                             const recipeId = event.target.dataset.recipeId;
-                            openRecipe(recipeId);
+                            const isUserCreated = event.target.dataset.isUserCreated === 'true';
+                            openRecipe(recipeId, isUserCreated);
                         });
                     });
                 }
@@ -1599,7 +1927,7 @@
             if (!user) return showAlert('Not logged in');
             try {
                 const savedRecipesRef = collection(db, 'users', user.uid, 'saved_recipes');
-                const q = query(savedRecipesRef, where("id", "==", recipeData.id));
+                const q = query(savedRecipesRef, where("id", "==", recipeData.id), where("isUserCreated", "==", false));
                 const querySnapshot = await getDocs(q);
                 if (!querySnapshot.empty) {
                     showAlert('Recipe already saved!');
@@ -1611,7 +1939,8 @@
                     image: recipeData.image || '',
                     usedIngredientCount: recipeData.usedIngredientCount,
                     missedIngredientCount: recipeData.missedIngredientCount,
-                    savedAt: new Date()
+                    savedAt: new Date(),
+                    isUserCreated: false // Flag to distinguish from user-created recipes
                 });
                 showAlert('Recipe saved successfully!');
                 loadSavedRecipes(user.uid);
@@ -1632,7 +1961,8 @@
                 } else {
                     const filteredRecipes = querySnapshot.docs.filter(doc => {
                         const recipe = doc.data();
-                        return recipe.title.toLowerCase().includes(searchTerm.toLowerCase());
+                        const title = recipe.isUserCreated ? (recipe.name || recipe.title) : recipe.title; // Use 'name' for user-created, 'title' for Spoonacular
+                        return title.toLowerCase().includes(searchTerm.toLowerCase());
                     });
                     if (filteredRecipes.length === 0) {
                         savedRecipesDisplay.innerHTML = '<p class="text-center text-muted">No matching saved recipes found.</p>';
@@ -1642,29 +1972,30 @@
                         const recipe = docSnapshot.data();
                         const li = document.createElement('div');
                         li.className = 'list-group-item recipe-item-box';
+                        const recipeTitle = recipe.isUserCreated ? (recipe.name || recipe.title) : recipe.title;
+                        const recipeImage = recipe.isUserCreated ? recipe.imageUrl : recipe.image;
+                        const recipeId = recipe.isUserCreated ? recipe.originalRecipeId : recipe.id; // Use original ID for user-created
+
                         li.innerHTML = `
                             <div>
-                                <strong>${recipe.title}</strong><br>
-                                <small>
-                                    Used Ingredients: ${recipe.usedIngredientCount}<br>
-                                    Missing Ingredients: ${recipe.missedIngredientCount}
-                                </small>
+                                <strong>${recipeTitle}</strong><br>
+                                ${!recipe.isUserCreated ? `<small>Used Ingredients: ${recipe.usedIngredientCount}<br>Missing Ingredients: ${recipe.missedIngredientCount}</small>` : `<small>Source: User Created</small>`}
                             </div>
-                            ${recipe.image ? `<img src="${recipe.image}" class="rounded mt-2" alt="${recipe.title}">` : ''}
+                            ${recipeImage ? `<img src="${recipeImage}" class="rounded mt-2" alt="${recipeTitle}">` : ''}
                             <div class="mt-2">
-                                <button class="btn btn-sm btn-primary open-recipe-btn" data-recipe-id="${recipe.id}">Open</button>
-                                <button class="remove-recipe-btn btn btn-danger btn-sm" data-recipe-id="${docSnapshot.id}" data-user-id="${userId}">Remove</button>
+                                <button class="btn btn-sm btn-primary open-recipe-btn" data-recipe-id="${recipeId}" data-is-user-created="${recipe.isUserCreated}">Open</button>
+                                <button class="remove-recipe-btn btn btn-danger btn-sm" data-recipe-doc-id="${docSnapshot.id}" data-user-id="${userId}">Remove</button>
                             </div>
                         `;
                         savedRecipesDisplay.appendChild(li);
                     });
                     savedRecipesDisplay.querySelectorAll('.remove-recipe-btn').forEach(button => {
                         button.addEventListener('click', (event) => {
-                            const recipeId = event.target.dataset.recipeId;
+                            const recipeDocId = event.target.dataset.recipeDocId; // This is the Firestore document ID for the saved recipe
                             const currentUserId = event.target.dataset.userId;
                             showConfirm('Are you sure you want to remove this saved recipe?', (confirmed) => {
                                 if (confirmed) {
-                                    removeSavedRecipe(recipeId, currentUserId);
+                                    removeSavedRecipe(recipeDocId, currentUserId);
                                 }
                             });
                         });
@@ -1672,7 +2003,8 @@
                     savedRecipesDisplay.querySelectorAll('.open-recipe-btn').forEach(button => {
                         button.addEventListener('click', (event) => {
                             const recipeId = event.target.dataset.recipeId;
-                            openRecipe(recipeId);
+                            const isUserCreated = event.target.dataset.isUserCreated === 'true';
+                            openRecipe(recipeId, isUserCreated);
                         });
                     });
                 }
@@ -1682,9 +2014,9 @@
             }
         }
 
-        async function removeSavedRecipe(recipeId, userId) {
+        async function removeSavedRecipe(recipeDocId, userId) {
             try {
-                await deleteDoc(doc(db, 'users', userId, 'saved_recipes', recipeId));
+                await deleteDoc(doc(db, 'users', userId, 'saved_recipes', recipeDocId));
                 showAlert('Recipe removed successfully!');
                 loadSavedRecipes(userId);
             } catch (error) {
@@ -1692,6 +2024,224 @@
                 console.error("Error removing saved recipe:", error);
             }
         }
+
+        async function showCreateRecipeModal(recipeToEdit = null) {
+            document.getElementById('recipe-name').value = '';
+            document.getElementById('recipe-description').value = '';
+            document.getElementById('recipe-ingredients').value = '';
+            document.getElementById('recipe-instructions').value = '';
+            document.getElementById('recipe-prep-time').value = '';
+            document.getElementById('recipe-cook-time').value = '';
+            document.getElementById('recipe-servings').value = '';
+            document.getElementById('recipe-image').value = '';
+            document.getElementById('recipe-share-public').checked = false;
+            document.getElementById('current-recipe-image-display').style.display = 'none';
+            document.getElementById('current-recipe-image-display').src = '';
+            document.getElementById('recipe-id-to-edit').value = ''; // Clear ID for new recipe
+
+            if (recipeToEdit) {
+                document.getElementById('createRecipeLabel').textContent = 'Edit Recipe';
+                document.getElementById('recipe-id-to-edit').value = recipeToEdit.id;
+                document.getElementById('recipe-name').value = recipeToEdit.name || '';
+                document.getElementById('recipe-description').value = recipeToEdit.description || '';
+                document.getElementById('recipe-ingredients').value = recipeToEdit.ingredients || '';
+                document.getElementById('recipe-instructions').value = recipeToEdit.instructions || '';
+                document.getElementById('recipe-prep-time').value = recipeToEdit.prepTime || '';
+                document.getElementById('recipe-cook-time').value = recipeToEdit.cookTime || '';
+                document.getElementById('recipe-servings').value = recipeToEdit.servings || '';
+                document.getElementById('recipe-share-public').checked = recipeToEdit.isPublic || false;
+                if (recipeToEdit.imageUrl) {
+                    document.getElementById('current-recipe-image-display').src = recipeToEdit.imageUrl;
+                    document.getElementById('current-recipe-image-display').style.display = 'block';
+                }
+            } else {
+                document.getElementById('createRecipeLabel').textContent = 'Create New Recipe';
+            }
+            createRecipeModal.show();
+        }
+
+        async function saveCreatedRecipe() {
+            const user = auth.currentUser;
+            if (!user) {
+                showAlert('You must be logged in to create a recipe.');
+                return;
+            }
+
+            const recipeIdToEdit = document.getElementById('recipe-id-to-edit').value;
+            const recipeName = document.getElementById('recipe-name').value.trim();
+            const recipeDescription = document.getElementById('recipe-description').value.trim();
+            const recipeIngredients = document.getElementById('recipe-ingredients').value.trim();
+            const recipeInstructions = document.getElementById('recipe-instructions').value.trim();
+            const recipePrepTime = document.getElementById('recipe-prep-time').value.trim();
+            const recipeCookTime = document.getElementById('recipe-cook-time').value.trim();
+            const recipeServings = document.getElementById('recipe-servings').value.trim();
+            const recipeImageFile = document.getElementById('recipe-image').files[0];
+            const isPublic = document.getElementById('recipe-share-public').checked;
+
+            if (!recipeName || !recipeIngredients || !recipeInstructions) {
+                showAlert('Recipe Name, Ingredients, and Instructions are required.');
+                return;
+            }
+
+            let imageUrl = document.getElementById('current-recipe-image-display').src; // Keep existing image if no new file
+
+            if (recipeImageFile) {
+                try {
+                    const storageRef = ref(storage, `recipe_images/${user.uid}/${recipeImageFile.name}`);
+                    await uploadBytes(storageRef, recipeImageFile);
+                    imageUrl = await getDownloadURL(storageRef);
+                    showAlert('Recipe image uploaded!');
+                } catch (error) {
+                    console.error("Error uploading recipe image:", error);
+                    showAlert('Failed to upload recipe image: ' + error.message);
+                    return;
+                }
+            }
+
+            const recipeData = {
+                userId: user.uid,
+                creatorEmail: user.email,
+                name: recipeName,
+                description: recipeDescription,
+                ingredients: recipeIngredients,
+                instructions: recipeInstructions,
+                prepTime: recipePrepTime,
+                cookTime: recipeCookTime,
+                servings: recipeServings,
+                imageUrl: imageUrl,
+                isPublic: isPublic,
+                createdAt: new Date()
+            };
+
+            try {
+                if (recipeIdToEdit) {
+                    await updateDoc(doc(db, 'user_created_recipes', recipeIdToEdit), recipeData);
+                    showAlert('Recipe updated successfully!');
+                } else {
+                    await addDoc(collection(db, 'user_created_recipes'), recipeData);
+                    showAlert('Recipe created successfully!');
+                }
+                createRecipeModal.hide();
+                if (manageMyRecipesModal._isShown) {
+                    renderUserCreatedRecipes(user.uid);
+                }
+            } catch (error) {
+                showAlert('Error saving recipe: ' + error.message);
+                console.error("Error saving recipe:", error);
+            }
+        }
+
+        async function renderUserCreatedRecipes(userId) {
+            try {
+                const userCreatedRecipesDisplay = document.getElementById('user-created-recipes-display');
+                userCreatedRecipesDisplay.innerHTML = '<p class="text-center text-muted">Loading your recipes...</p>';
+
+                const querySnapshot = await getDocs(query(collection(db, 'user_created_recipes'), where('userId', '==', userId)));
+                userCreatedRecipesDisplay.innerHTML = '';
+
+                if (querySnapshot.empty) {
+                    userCreatedRecipesDisplay.innerHTML = '<p class="text-center text-muted">You haven\'t created any recipes yet.</p>';
+                } else {
+                    querySnapshot.forEach(docSnapshot => {
+                        const recipe = { id: docSnapshot.id, ...docSnapshot.data() };
+                        const publicStatusText = recipe.isPublic ? 'Public' : 'Private';
+                        const publicStatusClass = recipe.isPublic ? 'public-status-yes' : 'public-status-no';
+
+                        const recipeDiv = document.createElement('div');
+                        recipeDiv.className = 'recipe-display-box';
+                        recipeDiv.innerHTML = `
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h5>${recipe.name} <span class="public-status ${publicStatusClass}">${publicStatusText}</span></h5>
+                                <div>
+                                    <button class="btn btn-sm btn-info text-white me-2 share-created-recipe-btn" data-recipe-id="${recipe.id}" data-recipe-owner-id="${recipe.userId}">Share</button>
+                                    <button class="btn btn-sm btn-primary edit-created-recipe-btn" data-recipe-id="${recipe.id}">Edit</button>
+                                    <button class="btn btn-sm btn-danger delete-created-recipe-btn" data-recipe-id="${recipe.id}">Delete</button>
+                                </div>
+                            </div>
+                            ${recipe.imageUrl ? `<img src="${recipe.imageUrl}" alt="${recipe.name}" class="img-fluid rounded">` : ''}
+                            <p>${recipe.description || 'No description.'}</p>
+                            <div class="meta-info">
+                                <span>Prep: ${recipe.prepTime || 'N/A'}</span> |
+                                <span>Cook: ${recipe.cookTime || 'N/A'}</span> |
+                                <span>Servings: ${recipe.servings || 'N/A'}</span>
+                            </div>
+                            <div class="form-check mt-2">
+                                <input class="form-check-input toggle-public-status" type="checkbox" id="toggle-public-${recipe.id}" data-recipe-id="${recipe.id}" ${recipe.isPublic ? 'checked' : ''}>
+                                <label class="form-check-label" for="toggle-public-${recipe.id}">Make Public</label>
+                            </div>
+                        `;
+                        userCreatedRecipesDisplay.appendChild(recipeDiv);
+                    });
+
+                    userCreatedRecipesDisplay.querySelectorAll('.edit-created-recipe-btn').forEach(button => {
+                        button.addEventListener('click', async (event) => {
+                            const recipeId = event.target.dataset.recipeId;
+                            const recipeDoc = await getDoc(doc(db, 'user_created_recipes', recipeId));
+                            if (recipeDoc.exists()) {
+                                showCreateRecipeModal({ id: recipeDoc.id, ...recipeDoc.data() });
+                            } else {
+                                showAlert('Recipe not found for editing.');
+                            }
+                        });
+                    });
+
+                    userCreatedRecipesDisplay.querySelectorAll('.delete-created-recipe-btn').forEach(button => {
+                        button.addEventListener('click', (event) => {
+                            const recipeId = event.target.dataset.recipeId;
+                            showConfirm('Are you sure you want to delete this recipe?', (confirmed) => {
+                                if (confirmed) {
+                                    deleteCreatedRecipe(recipeId, userId);
+                                }
+                            });
+                        });
+                    });
+
+                    userCreatedRecipesDisplay.querySelectorAll('.share-created-recipe-btn').forEach(button => {
+                        button.addEventListener('click', (event) => {
+                            const recipeId = event.target.dataset.recipeId;
+                            const recipeOwnerId = event.target.dataset.recipeOwnerId;
+                            generateShareableRecipeLink(recipeId, recipeOwnerId);
+                        });
+                    });
+
+                    userCreatedRecipesDisplay.querySelectorAll('.toggle-public-status').forEach(checkbox => {
+                        checkbox.addEventListener('change', async (event) => {
+                            const recipeId = event.target.dataset.recipeId;
+                            const isPublic = event.target.checked;
+                            try {
+                                await updateDoc(doc(db, 'user_created_recipes', recipeId), { isPublic: isPublic });
+                                showAlert(`Recipe set to ${isPublic ? 'Public' : 'Private'}!`);
+                                renderUserCreatedRecipes(userId); // Re-render to update status label
+                            } catch (error) {
+                                console.error('Error updating public status:', error);
+                                showAlert('Failed to update public status: ' + error.message);
+                            }
+                        });
+                    });
+                }
+            } catch (error) {
+                showAlert('Error loading your created recipes: ' + error.message);
+                console.error("Error loading user created recipes:", error);
+            }
+        }
+
+        async function deleteCreatedRecipe(recipeId, userId) {
+            try {
+                await deleteDoc(doc(db, 'user_created_recipes', recipeId));
+                showAlert('Recipe deleted successfully!');
+                renderUserCreatedRecipes(userId);
+            } catch (error) {
+                showAlert('Error deleting recipe: ' + error.message);
+                console.error("Error deleting recipe:", error);
+            }
+        }
+
+        async function generateShareableRecipeLink(recipeId, recipeOwnerId) {
+            const shareLink = `${window.location.origin}/?action=shareRecipe&recipeId=${recipeId}&ownerId=${recipeOwnerId}`;
+            document.getElementById('share-item-link').value = shareLink; // Re-use item share modal for now
+            shareItemModal.show();
+        }
+
 
         async function loadUsers(userId) {
             try {
