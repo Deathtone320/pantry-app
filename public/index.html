@@ -176,11 +176,13 @@
         #edit-quantity-modal .modal-body {
             padding: 20px;
         }
-        #invitation-modal .modal-body {
+        #invitation-modal .modal-body,
+        #no-user-found-modal .modal-body {
             padding: 20px;
             text-align: center;
         }
-        #invitation-modal .modal-body input {
+        #invitation-modal .modal-body input,
+        #no-user-found-modal .modal-body input {
             margin-bottom: 10px;
             text-align: center;
         }
@@ -356,6 +358,11 @@
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
+                        <h4 class="mb-3">Add Friend by Email</h4>
+                        <div class="input-group mb-3">
+                            <input type="email" id="friend-email-search" class="form-control" placeholder="Enter friend's email">
+                            <button class="btn btn-primary" type="button" id="search-friend-btn">Search</button>
+                        </div>
                         <h4 class="mb-3">Friends</h4>
                         <ul id="user-list" class="list-group mb-3"></ul>
                     </div>
@@ -396,6 +403,26 @@
                     <div class="modal-body">
                         <input type="text" id="invitation-link" class="form-control" readonly>
                         <button id="copy-link-btn" class="btn btn-primary mt-2">Copy Link</button>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- No User Found Modal -->
+        <div id="no-user-found-modal" class="modal fade" tabindex="-1" aria-labelledby="noUserFoundLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="noUserFoundLabel">User Not Found</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>The email you entered is not registered. Invite them to join the Pantry App!</p>
+                        <input type="text" id="no-user-invitation-link" class="form-control" readonly>
+                        <button id="no-user-copy-link-btn" class="btn btn-primary mt-2">Copy Invitation Link</button>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -450,6 +477,7 @@
         let editQuantityModal;
         let settingsOffcanvas;
         let invitationModal;
+        let noUserFoundModal;
         let currentItemToAdd = null;
         let currentPantryUserId = null;
 
@@ -482,14 +510,12 @@
                                 const userCredential = await createUserWithEmailAndPassword(auth, email, password);
                                 const newUser = userCredential.user;
                                 await sendEmailVerification(newUser);
-                                // Save user email in users collection
                                 await setDoc(doc(db, 'users', newUser.uid), {
                                     email: email,
                                     name: '',
                                     sharePantry: false,
                                     createdAt: new Date()
                                 }, { merge: true });
-                                // Add bidirectional friend relationship
                                 await setDoc(doc(db, 'users', newUser.uid, 'friends', inviterId), {
                                     friendId: inviterId,
                                     email: (await getDoc(doc(db, 'users', inviterId))).data()?.email || 'Unknown',
@@ -530,6 +556,7 @@
             userManagementModal = new bootstrap.Modal(document.getElementById('user-management-modal'));
             editQuantityModal = new bootstrap.Modal(document.getElementById('edit-quantity-modal'));
             invitationModal = new bootstrap.Modal(document.getElementById('invitation-modal'));
+            noUserFoundModal = new bootstrap.Modal(document.getElementById('no-user-found-modal'));
             settingsOffcanvas = new bootstrap.Offcanvas(document.getElementById('settings-offcanvas'));
 
             var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
@@ -636,20 +663,8 @@
             });
             document.getElementById('offcanvas-add-user-btn').addEventListener('click', () => {
                 settingsOffcanvas.hide();
-                const token = Math.random().toString(36).substring(2, 15);
-                const invitationRef = doc(db, 'invitations', `${auth.currentUser.uid}_${token}`);
-                setDoc(invitationRef, {
-                    inviterId: auth.currentUser.uid,
-                    used: false,
-                    timestamp: new Date()
-                }).then(() => {
-                    const invitationLink = `${window.location.origin}/?inviterId=${auth.currentUser.uid}&token=${token}`;
-                    document.getElementById('invitation-link').value = invitationLink;
-                    invitationModal.show();
-                }).catch(error => {
-                    alert('Error creating invitation: ' + error.message);
-                    console.error("Error in addUser function:", error);
-                });
+                userManagementModal.show();
+                loadUsers(auth.currentUser.uid);
             });
             document.getElementById('offcanvas-manage-access-btn').addEventListener('click', () => {
                 settingsOffcanvas.hide();
@@ -664,9 +679,76 @@
                 document.execCommand('copy');
                 alert('Link copied to clipboard!');
             });
+            document.getElementById('no-user-copy-link-btn').addEventListener('click', () => {
+                const linkInput = document.getElementById('no-user-invitation-link');
+                linkInput.select();
+                document.execCommand('copy');
+                alert('Invitation link copied to clipboard!');
+            });
+            document.getElementById('search-friend-btn').addEventListener('click', searchAndAddFriend);
 
             handleInvitationRegistration();
         });
+
+        async function searchAndAddFriend() {
+            const email = document.getElementById('friend-email-search').value.trim();
+            if (!email) {
+                alert('Please enter an email address.');
+                return;
+            }
+            if (email === auth.currentUser.email) {
+                alert('You cannot add yourself as a friend.');
+                return;
+            }
+            try {
+                const usersQuery = query(collection(db, 'users'), where('email', '==', email));
+                const querySnapshot = await getDocs(usersQuery);
+                if (querySnapshot.empty) {
+                    const token = Math.random().toString(36).substring(2, 15);
+                    const invitationRef = doc(db, 'invitations', `${auth.currentUser.uid}_${token}`);
+                    await setDoc(invitationRef, {
+                        inviterId: auth.currentUser.uid,
+                        used: false,
+                        timestamp: new Date()
+                    });
+                    const invitationLink = `${window.location.origin}/?inviterId=${auth.currentUser.uid}&token=${token}`;
+                    document.getElementById('no-user-invitation-link').value = invitationLink;
+                    noUserFoundModal.show();
+                } else {
+                    const friendDoc = querySnapshot.docs[0];
+                    const friendId = friendDoc.id;
+                    const friendEmail = friendDoc.data().email;
+                    const currentUserDoc = await getDoc(doc(db, 'users', auth.currentUser.uid));
+                    const currentUserEmail = currentUserDoc.data().email;
+
+                    const existingFriendQuery = query(collection(db, 'users', auth.currentUser.uid, 'friends'), where('friendId', '==', friendId));
+                    const existingFriendSnapshot = await getDocs(existingFriendQuery);
+                    if (!existingFriendSnapshot.empty) {
+                        alert('This user is already in your friends list.');
+                        return;
+                    }
+
+                    await setDoc(doc(db, 'users', auth.currentUser.uid, 'friends', friendId), {
+                        friendId: friendId,
+                        email: friendEmail,
+                        synced: false,
+                        timestamp: new Date()
+                    });
+                    await setDoc(doc(db, 'users', friendId, 'friends', auth.currentUser.uid), {
+                        friendId: auth.currentUser.uid,
+                        email: currentUserEmail,
+                        synced: false,
+                        timestamp: new Date()
+                    });
+                    alert('Friend added successfully!');
+                    loadUsers(auth.currentUser.uid);
+                    document.getElementById('friend-email-search').value = '';
+                }
+            } catch (error) {
+                console.error("Error searching for friend:", error);
+                alert('Error searching for friend: ' + error.message);
+            }
+        }
 
         onAuthStateChanged(auth, async user => {
             if (user) {
