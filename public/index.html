@@ -663,8 +663,20 @@
             });
             document.getElementById('offcanvas-add-user-btn').addEventListener('click', () => {
                 settingsOffcanvas.hide();
-                userManagementModal.show();
-                loadUsers(auth.currentUser.uid);
+                const token = Math.random().toString(36).substring(2, 15);
+                const invitationRef = doc(db, 'invitations', `${auth.currentUser.uid}_${token}`);
+                setDoc(invitationRef, {
+                    inviterId: auth.currentUser.uid,
+                    used: false,
+                    timestamp: new Date()
+                }).then(() => {
+                    const invitationLink = `${window.location.origin}/?inviterId=${auth.currentUser.uid}&token=${token}`;
+                    document.getElementById('invitation-link').value = invitationLink;
+                    invitationModal.show();
+                }).catch(error => {
+                    alert('Error creating invitation: ' + error.message);
+                    console.error("Error in addUser function:", error);
+                });
             });
             document.getElementById('offcanvas-manage-access-btn').addEventListener('click', () => {
                 settingsOffcanvas.hide();
