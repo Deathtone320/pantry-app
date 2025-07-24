@@ -377,6 +377,33 @@
             background-color: #f8d7da;
             color: #721c24;
         }
+        /* Styles for expandable recipe details */
+        .recipe-header-clickable {
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background-color: #e9f5ff;
+            border-radius: 8px;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #007bff;
+        }
+        .recipe-details-content {
+            display: none; /* Hidden by default */
+            padding: 10px;
+            border-top: 1px solid #eee;
+        }
+        .recipe-details-content.show {
+            display: block;
+        }
+        .recipe-header-clickable .arrow {
+            transition: transform 0.3s ease;
+        }
+        .recipe-header-clickable.expanded .arrow {
+            transform: rotate(90deg);
+        }
     </style>
 </head>
 <body>
@@ -583,6 +610,7 @@
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
+                        <input type="text" id="manage-recipes-search-bar" class="form-control mb-3" placeholder="Search your recipes...">
                         <div id="user-created-recipes-display">
                             <p class="text-center text-muted">No recipes created yet.</p>
                         </div>
@@ -1373,7 +1401,10 @@
             document.getElementById('offcanvas-manage-my-recipes-btn').addEventListener('click', () => { // New: Manage My Recipes button handler
                 settingsOffcanvas.hide();
                 manageMyRecipesModal.show();
-                renderUserCreatedRecipes(auth.currentUser.uid);
+                renderUserCreatedRecipes(auth.currentUser.uid); // Initial load without search term
+            });
+            document.getElementById('manage-recipes-search-bar').addEventListener('input', (event) => {
+                renderUserCreatedRecipes(auth.currentUser.uid, event.target.value);
             });
             document.getElementById('offcanvas-download-btn').addEventListener('click', downloadShortcut);
             document.getElementById('offcanvas-logout-link').addEventListener('click', logout);
@@ -1526,7 +1557,7 @@
                     const urlParams = new URLSearchParams(window.location.search);
                     const action = urlParams.get('action');
                     const itemId = urlParams.get('itemId');
-                    const ownerId = urlParams.get('ownerId'); // Corrected from url.get to urlParams.get
+                    const ownerId = urlParams.get('ownerId');
                     const recipeId = urlParams.get('recipeId');
 
                     if (action === 'shareItem' && itemId && ownerId) {
@@ -2143,7 +2174,7 @@
             }
         }
 
-        async function renderUserCreatedRecipes(userId) {
+        async function renderUserCreatedRecipes(userId, searchTerm = '') {
             try {
                 const userCreatedRecipesDisplay = document.getElementById('user-created-recipes-display');
                 userCreatedRecipesDisplay.innerHTML = '<p class="text-center text-muted">Loading your recipes...</p>';
@@ -2154,7 +2185,17 @@
                 if (querySnapshot.empty) {
                     userCreatedRecipesDisplay.innerHTML = '<p class="text-center text-muted">You haven\'t created any recipes yet.</p>';
                 } else {
-                    querySnapshot.forEach(docSnapshot => {
+                    const filteredRecipes = querySnapshot.docs.filter(doc => {
+                        const recipe = doc.data();
+                        return recipe.name.toLowerCase().includes(searchTerm.toLowerCase());
+                    });
+
+                    if (filteredRecipes.length === 0) {
+                        userCreatedRecipesDisplay.innerHTML = '<p class="text-center text-muted">No matching recipes found.</p>';
+                        return;
+                    }
+
+                    filteredRecipes.forEach(docSnapshot => {
                         const recipe = { id: docSnapshot.id, ...docSnapshot.data() };
                         const publicStatusText = recipe.isPublic ? 'Public' : 'Private';
                         const publicStatusClass = recipe.isPublic ? 'public-status-yes' : 'public-status-no';
@@ -2162,27 +2203,43 @@
                         const recipeDiv = document.createElement('div');
                         recipeDiv.className = 'recipe-display-box';
                         recipeDiv.innerHTML = `
-                            <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div class="recipe-header-clickable" data-recipe-id="${recipe.id}">
                                 <h5>${recipe.name} <span class="public-status ${publicStatusClass}">${publicStatusText}</span></h5>
-                                <div>
+                                <span class="arrow">▶</span>
+                            </div>
+                            <div class="recipe-details-content" id="recipe-details-${recipe.id}">
+                                ${recipe.imageUrl ? `<img src="${recipe.imageUrl}" alt="${recipe.name}" class="img-fluid rounded">` : ''}
+                                <p>${recipe.description || 'No description.'}</p>
+                                <div class="meta-info">
+                                    <span>Prep: ${recipe.prepTime || 'N/A'}</span> |
+                                    <span>Cook: ${recipe.cookTime || 'N/A'}</span> |
+                                    <span>Servings: ${recipe.servings || 'N/A'}</span>
+                                </div>
+                                <h6>Ingredients:</h6>
+                                <pre class="bg-light p-2 rounded">${recipe.ingredients || 'No ingredients listed.'}</pre>
+                                <h6>Instructions:</h6>
+                                <pre class="bg-light p-2 rounded">${recipe.instructions || 'No instructions provided.'}</pre>
+                                <div class="form-check mt-2">
+                                    <input class="form-check-input toggle-public-status" type="checkbox" id="toggle-public-${recipe.id}-details" data-recipe-id="${recipe.id}" ${recipe.isPublic ? 'checked' : ''}>
+                                    <label class="form-check-label" for="toggle-public-${recipe.id}-details">Make Public</label>
+                                </div>
+                                <div class="mt-3">
                                     <button class="btn btn-sm btn-info text-white me-2 share-created-recipe-btn" data-recipe-id="${recipe.id}" data-recipe-owner-id="${recipe.userId}">Share</button>
                                     <button class="btn btn-sm btn-primary edit-created-recipe-btn" data-recipe-id="${recipe.id}">Edit</button>
                                     <button class="btn btn-sm btn-danger delete-created-recipe-btn" data-recipe-id="${recipe.id}">Delete</button>
                                 </div>
                             </div>
-                            ${recipe.imageUrl ? `<img src="${recipe.imageUrl}" alt="${recipe.name}" class="img-fluid rounded">` : ''}
-                            <p>${recipe.description || 'No description.'}</p>
-                            <div class="meta-info">
-                                <span>Prep: ${recipe.prepTime || 'N/A'}</span> |
-                                <span>Cook: ${recipe.cookTime || 'N/A'}</span> |
-                                <span>Servings: ${recipe.servings || 'N/A'}</span>
-                            </div>
-                            <div class="form-check mt-2">
-                                <input class="form-check-input toggle-public-status" type="checkbox" id="toggle-public-${recipe.id}" data-recipe-id="${recipe.id}" ${recipe.isPublic ? 'checked' : ''}>
-                                <label class="form-check-label" for="toggle-public-${recipe.id}">Make Public</label>
-                            </div>
                         `;
                         userCreatedRecipesDisplay.appendChild(recipeDiv);
+                    });
+
+                    userCreatedRecipesDisplay.querySelectorAll('.recipe-header-clickable').forEach(header => {
+                        header.addEventListener('click', (event) => {
+                            const recipeId = event.currentTarget.dataset.recipeId;
+                            const detailsContent = document.getElementById(`recipe-details-${recipeId}`);
+                            event.currentTarget.classList.toggle('expanded');
+                            detailsContent.classList.toggle('show');
+                        });
                     });
 
                     userCreatedRecipesDisplay.querySelectorAll('.edit-created-recipe-btn').forEach(button => {
@@ -2223,7 +2280,7 @@
                             try {
                                 await updateDoc(doc(db, 'user_created_recipes', recipeId), { isPublic: isPublic });
                                 showAlert(`Recipe set to ${isPublic ? 'Public' : 'Private'}!`);
-                                renderUserCreatedRecipes(userId); // Re-render to update status label
+                                renderUserCreatedRecipes(userId, document.getElementById('manage-recipes-search-bar').value); // Re-render to update status label
                             } catch (error) {
                                 console.error('Error updating public status:', error);
                                 showAlert('Failed to update public status: ' + error.message);
@@ -2241,7 +2298,7 @@
             try {
                 await deleteDoc(doc(db, 'user_created_recipes', recipeId));
                 showAlert('Recipe deleted successfully!');
-                renderUserCreatedRecipes(userId);
+                renderUserCreatedRecipes(userId, document.getElementById('manage-recipes-search-bar').value);
             } catch (error) {
                 showAlert('Error deleting recipe: ' + error.message);
                 console.error("Error deleting recipe:", error);
