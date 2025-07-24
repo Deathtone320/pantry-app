@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pantry App</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="manifest" href="https://github.com/Deathtone320/pantry-app/blob/main/manifest.json">
+    <!-- Updated manifest link to raw content for PWA functionality -->
+    <link rel="manifest" href="https://raw.githubusercontent.com/Deathtone320/pantry-app/main/manifest.json">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/quagga@0.12.1/dist/quagga.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios@1.4.0/dist/axios.min.js"></script>
@@ -179,7 +180,9 @@
             padding: 20px;
         }
         #invitation-modal .modal-body,
-        #no-user-found-modal .modal-body {
+        #no-user-found-modal .modal-body,
+        #confirmation-modal .modal-body,
+        #info-modal .modal-body { /* Added info-modal and confirmation-modal */
             padding: 20px;
             text-align: center;
         }
@@ -452,6 +455,43 @@
             </div>
         </div>
 
+        <!-- Custom Confirmation Modal (Replaces confirm()) -->
+        <div id="confirmation-modal" class="modal fade" tabindex="-1" aria-labelledby="confirmationModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="confirmationModalLabel">Confirm Action</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p id="confirmation-message"></p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="confirm-cancel-btn">Cancel</button>
+                        <button type="button" class="btn btn-primary" id="confirm-ok-btn">OK</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Custom Info Modal (Replaces alert()) -->
+        <div id="info-modal" class="modal fade" tabindex="-1" aria-labelledby="infoModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="infoModalLabel">Information</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p id="info-message"></p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-primary" data-bs-dismiss="modal">OK</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Settings Offcanvas -->
         <div class="offcanvas offcanvas-end" tabindex="-1" id="settings-offcanvas" aria-labelledby="settingsOffcanvasLabel">
             <div class="offcanvas-header">
@@ -501,9 +541,31 @@
         let settingsOffcanvas;
         let invitationModal;
         let noUserFoundModal;
+        let confirmationModal; // Added confirmation modal
+        let infoModal; // Added info modal
         let currentItemToAdd = null;
         let currentPantryUserId = null;
         let deferredPrompt = null;
+
+        // Custom alert function
+        function showAlert(message) {
+            document.getElementById('info-message').textContent = message;
+            infoModal.show();
+        }
+
+        // Custom confirm function
+        function showConfirm(message, onConfirm) {
+            document.getElementById('confirmation-message').textContent = message;
+            confirmationModal.show();
+            document.getElementById('confirm-ok-btn').onclick = () => {
+                confirmationModal.hide();
+                onConfirm(true);
+            };
+            document.getElementById('confirm-cancel-btn').onclick = () => {
+                confirmationModal.hide();
+                onConfirm(false);
+            };
+        }
 
         window.showSection = function(sectionId) {
             ['welcome-section', 'login-section', 'register-section', 'verify-email-section', 'app-section'].forEach(id => {
@@ -549,7 +611,7 @@
                             const password = document.getElementById('register-password').value;
                             const confirmPassword = document.getElementById('register-confirm-password').value;
                             if (password !== confirmPassword) {
-                                alert('Passwords do not match');
+                                showAlert('Passwords do not match');
                                 return;
                             }
                             try {
@@ -575,20 +637,20 @@
                                     timestamp: new Date()
                                 });
                                 await updateDoc(invitationRef, { used: true });
-                                alert('Registration successful! Please verify your email to continue.');
+                                showAlert('Registration successful! Please verify your email to continue.');
                                 window.showSection('verify-email-section');
                             } catch (error) {
                                 console.error("Registration failed:", error);
-                                alert('Registration failed: ' + error.message);
+                                showAlert('Registration failed: ' + error.message);
                             }
                         };
                     } else {
-                        alert('Invalid or used invitation link.');
+                        showAlert('Invalid or used invitation link.');
                         window.showSection('welcome-section');
                     }
                 } catch (error) {
                     console.error("Error handling invitation:", error);
-                    alert('Failed to process invitation: ' + error.message);
+                    showAlert('Failed to process invitation: ' + error.message);
                 }
             }
         }
@@ -604,6 +666,8 @@
             invitationModal = new bootstrap.Modal(document.getElementById('invitation-modal'));
             noUserFoundModal = new bootstrap.Modal(document.getElementById('no-user-found-modal'));
             settingsOffcanvas = new bootstrap.Offcanvas(document.getElementById('settings-offcanvas'));
+            confirmationModal = new bootstrap.Modal(document.getElementById('confirmation-modal')); // Initialize confirmation modal
+            infoModal = new bootstrap.Modal(document.getElementById('info-modal')); // Initialize info modal
 
             var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
             tooltipTriggerList.map(function (tooltipTriggerEl) {
@@ -645,7 +709,7 @@
                     window.showSection('welcome-section');
                 } catch (error) {
                     console.error("Error signing out from verification screen:", error);
-                    alert('Could not go back: ' + error.message);
+                    showAlert('Could not go back: ' + error.message);
                 }
             });
 
@@ -656,7 +720,7 @@
                     const userCredential = await signInWithEmailAndPassword(auth, email, password);
                     await ensureUserDocument(userCredential.user);
                 } catch (error) {
-                    alert('Login failed: ' + error.message);
+                    showAlert('Login failed: ' + error.message);
                 }
             });
 
@@ -665,7 +729,7 @@
                 const password = document.getElementById('register-password').value;
                 const confirmPassword = document.getElementById('register-confirm-password').value;
                 if (password !== confirmPassword) {
-                    alert('Passwords do not match');
+                    showAlert('Passwords do not match');
                     return;
                 }
                 try {
@@ -678,33 +742,33 @@
                         sharePantry: false,
                         createdAt: new Date()
                     }, { merge: true });
-                    alert('Verification email sent. Please check your inbox.');
+                    showAlert('Verification email sent. Please check your inbox.');
                     window.showSection('verify-email-section');
                 } catch (error) {
-                    alert('Registration failed: ' + error.message);
+                    showAlert('Registration failed: ' + error.message);
                 }
             });
 
             document.getElementById('resend-verification').addEventListener('click', async () => {
                 try {
                     await sendEmailVerification(auth.currentUser);
-                    alert('Verification email resent. Please check your inbox.');
+                    showAlert('Verification email resent. Please check your inbox.');
                 } catch (error) {
-                    alert('Failed to resend verification email: ' + error.message);
+                    showAlert('Failed to resend verification email: ' + error.message);
                 }
             });
 
             document.getElementById('forgot-password').addEventListener('click', async () => {
                 const email = document.getElementById('login-email').value.trim().toLowerCase();
                 if (!email) {
-                    alert('Please enter your email to reset password');
+                    showAlert('Please enter your email to reset password');
                     return;
                 }
                 try {
                     await sendPasswordResetEmail(auth, email);
-                    alert('Password reset email sent. Please check your inbox.');
+                    showAlert('Password reset email sent. Please check your inbox.');
                 } catch (error) {
-                    alert('Failed to send password reset email: ' + error.message);
+                    showAlert('Failed to send password reset email: ' + error.message);
                 }
             });
 
@@ -747,7 +811,7 @@
                     document.getElementById('invitation-link').value = invitationLink;
                     invitationModal.show();
                 }).catch(error => {
-                    alert('Error creating invitation: ' + error.message);
+                    showAlert('Error creating invitation: ' + error.message);
                     console.error("Error in invite function:", error);
                 });
             });
@@ -763,13 +827,13 @@
                 const linkInput = document.getElementById('invitation-link');
                 linkInput.select();
                 document.execCommand('copy');
-                alert('Link copied to clipboard!');
+                showAlert('Link copied to clipboard!');
             });
             document.getElementById('no-user-copy-link-btn').addEventListener('click', () => {
                 const linkInput = document.getElementById('no-user-invitation-link');
                 linkInput.select();
                 document.execCommand('copy');
-                alert('Invitation link copied to clipboard!');
+                showAlert('Invitation link copied to clipboard!');
             });
             document.getElementById('search-friend-btn').addEventListener('click', searchAndAddFriend);
 
@@ -778,7 +842,8 @@
 
         async function downloadShortcut() {
             const siteUrl = window.location.origin;
-            const iconUrl = 'https://github.com/Deathtone320/pantry-app/blob/main/manifest.json';
+            const iconUrl = 'https://raw.githubusercontent.com/Deathtone320/pantry-app/main/PantryIcon.png'; // Raw URL for the icon
+
             if (deferredPrompt) {
                 // Mobile: Trigger PWA install prompt with manifest icon
                 deferredPrompt.prompt();
@@ -791,7 +856,7 @@
                 deferredPrompt = null;
             } else {
                 // Desktop: Provide instructions for manual shortcut creation
-                alert(
+                showAlert(
                     'To add a Pantry App shortcut to your desktop:\n' +
                     '1. Open your browser’s menu (e.g., three dots in Chrome).\n' +
                     '2. Select "More Tools" > "Create Shortcut" or "Add to Desktop" (varies by browser).\n' +
@@ -806,16 +871,16 @@
         async function searchAndAddFriend() {
             const emailInput = document.getElementById('friend-email-search').value.trim();
             if (!emailInput) {
-                alert('Please enter an email address to invite.');
+                showAlert('Please enter an email address to invite.');
                 return;
             }
             if (!auth.currentUser) {
-                alert('You must be logged in to invite a user.');
+                showAlert('You must be logged in to invite a user.');
                 return;
             }
             const email = emailInput.toLowerCase();
             if (email === auth.currentUser.email.toLowerCase()) {
-                alert('You cannot invite yourself.');
+                showAlert('You cannot invite yourself.');
                 return;
             }
             try {
@@ -850,7 +915,7 @@
                 }
             } catch (error) {
                 console.error('Error searching for user to invite:', error, 'Email searched:', email);
-                alert('Error searching for user to invite: ' + error.message);
+                showAlert('Error searching for user to invite: ' + error.message);
             }
         }
 
@@ -862,7 +927,7 @@
                 const existingFriendQuery = query(collection(db, 'users', auth.currentUser.uid, 'friends'), where('friendId', '==', friendId));
                 const existingFriendSnapshot = await getDocs(existingFriendQuery);
                 if (!existingFriendSnapshot.empty) {
-                    alert('This user is already in your friends list.');
+                    showAlert('This user is already in your friends list.');
                     return;
                 }
 
@@ -878,12 +943,12 @@
                     synced: false,
                     timestamp: new Date()
                 });
-                alert('Friend added successfully!');
+                showAlert('Friend added successfully!');
                 loadUsers(auth.currentUser.uid);
                 document.getElementById('friend-email-search').value = '';
             } catch (error) {
                 console.error('Error adding friend:', error);
-                alert('Error adding friend: ' + error.message);
+                showAlert('Error adding friend: ' + error.message);
             }
         }
 
@@ -916,7 +981,7 @@
             }, function(err) {
                 if (err) {
                     console.error(err);
-                    alert('Error initializing scanner: ' + err.message);
+                    showAlert('Error initializing scanner: ' + err.message);
                     return;
                 }
                 Quagga.start();
@@ -941,14 +1006,14 @@
                     };
                     promptForItemLocation();
                 } else {
-                    alert('Product not found in database. Please add it manually.');
+                    showAlert('Product not found in database. Please add it manually.');
                     document.getElementById('manual-name').value = '';
                     document.getElementById('manual-quantity').value = '1';
                     document.getElementById('manual-image').value = '';
                     manualAddItemModal.show();
                 }
             } catch (error) {
-                alert('Error fetching product: ' + error.message);
+                showAlert('Error fetching product: ' + error.message);
                 console.error("Error fetching product:", error);
             }
         }
@@ -960,7 +1025,7 @@
             let imageUrl = '';
 
             if (!name) {
-                alert('Item name is required.');
+                showAlert('Item name is required.');
                 return;
             }
 
@@ -972,7 +1037,7 @@
                     imageUrl = await getDownloadURL(storageRef);
                 } catch (error) {
                     console.error("Error uploading image:", error);
-                    alert('Error uploading image: ' + error.message);
+                    showAlert('Error uploading image: ' + error.message);
                     return;
                 }
             }
@@ -984,7 +1049,7 @@
 
         async function promptForItemLocation() {
             if (!auth.currentUser) {
-                alert('Not logged in.');
+                showAlert('Not logged in.');
                 return;
             }
             const locationInput = document.getElementById('item-location');
@@ -1009,13 +1074,13 @@
         async function saveItemLocation() {
             const user = auth.currentUser;
             if (!user || !currentItemToAdd) {
-                alert('Error: User not logged in or no item to save.');
+                showAlert('Error: User not logged in or no item to save.');
                 return;
             }
 
             const location = document.getElementById('item-location').value.trim();
             if (!location) {
-                alert('Location is required.');
+                showAlert('Location is required.');
                 return;
             }
 
@@ -1026,14 +1091,14 @@
                     location,
                     addedAt: new Date()
                 });
-                alert('Item added successfully with location!');
+                showAlert('Item added successfully with location!');
                 locationInputModal.hide();
                 currentItemToAdd = null;
                 if (myPantryModal._isShown) {
                     renderPantryItemsByLocation(currentPantryUserId, document.getElementById('pantry-search-bar').value);
                 }
             } catch (error) {
-                alert('Error saving item with location: ' + error.message);
+                showAlert('Error saving item with location: ' + error.message);
                 console.error("Error saving item with location:", error);
             }
         }
@@ -1106,7 +1171,11 @@
                     button.addEventListener('click', (event) => {
                         const itemId = event.target.dataset.itemId;
                         const currentPantryOwnerId = event.target.dataset.userId;
-                        removeItem(itemId, currentPantryOwnerId);
+                        showConfirm('Are you sure you want to remove this item?', (confirmed) => {
+                            if (confirmed) {
+                                removeItem(itemId, currentPantryOwnerId);
+                            }
+                        });
                     });
                 });
                 pantryItemsDisplay.querySelectorAll('.edit-item-btn').forEach(button => {
@@ -1120,40 +1189,39 @@
                     });
                 });
             } catch (error) {
-                alert('Error loading pantry items by location: ' + error.message);
+                showAlert('Error loading pantry items by location: ' + error.message);
                 console.error("Error loading pantry items by location:", error);
             }
         }
 
         window.removeItem = async function(itemId, pantryOwnerId) {
-            if (!confirm('Are you sure you want to remove this item?')) return;
             try {
                 await deleteDoc(doc(db, 'pantries', pantryOwnerId, 'items', itemId));
-                alert('Item removed successfully!');
+                showAlert('Item removed successfully!');
                 if (myPantryModal._isShown) {
                     renderPantryItemsByLocation(pantryOwnerId, document.getElementById('pantry-search-bar').value);
                 }
             } catch (error) {
-                alert('Error removing item: ' + error.message);
+                showAlert('Error removing item: ' + error.message);
             }
         };
 
         async function saveQuantity() {
             const newQuantity = parseInt(document.getElementById('edit-quantity-input').value);
             if (isNaN(newQuantity) || newQuantity < 1) {
-                alert('Please enter a valid quantity greater than 0.');
+                showAlert('Please enter a valid quantity greater than 0.');
                 return;
             }
             const { itemId, userId } = window.currentEditingItem;
             try {
                 await updateDoc(doc(db, 'pantries', userId, 'items', itemId), { quantity: newQuantity });
-                alert('Quantity updated successfully!');
+                showAlert('Quantity updated successfully!');
                 editQuantityModal.hide();
                 if (myPantryModal._isShown) {
                     renderPantryItemsByLocation(userId, document.getElementById('pantry-search-bar').value);
                 }
             } catch (error) {
-                alert('Error updating quantity: ' + error.message);
+                showAlert('Error updating quantity: ' + error.message);
                 console.error("Error updating quantity:", error);
             }
             delete window.currentEditingItem;
@@ -1161,24 +1229,25 @@
 
         async function openRecipe(recipeId) {
             try {
-                const SPOONACULAR_API_KEY = '43f72f2e87ee4c969804402b3f4a93fa';
+                const SPOONACULAR_API_KEY = '43f72f2e87ee4c969804402b3f4a93fa'; // Replace with your actual Spoonacular API key
                 const response = await axios.get(`https://api.spoonacular.com/recipes/${recipeId}/information?apiKey=${SPOONACULAR_API_KEY}`);
                 const sourceUrl = response.data.sourceUrl;
                 if (sourceUrl) {
                     window.open(sourceUrl, '_blank');
                 } else {
-                    alert('No source URL available for this recipe.');
+                    showAlert('No source URL available for this recipe.');
                 }
             } catch (error) {
                 console.error('Error fetching recipe details:', error);
-                alert('Error fetching recipe details: ' + error.message);
+                showAlert('Error fetching recipe details: ' + error.message);
             }
         }
 
         async function getRecipes() {
             const user = auth.currentUser;
-            if (!user) return alert('Not logged in');
-            const foundRecipesDisplay = document.getElement10('found-recipes-display').innerHTML = '<p class="text-center text-muted">Finding recipes...</p>';
+            if (!user) return showAlert('Not logged in');
+            const foundRecipesDisplay = document.getElementById('found-recipes-display');
+            foundRecipesDisplay.innerHTML = '<p class="text-center text-muted">Finding recipes...</p>';
 
             try {
                 const querySnapshot = await getDocs(collection(db, 'pantries', currentPantryUserId, 'items'));
@@ -1187,7 +1256,7 @@
                     foundRecipesDisplay.innerHTML = '<li class="list-group-item text-muted">The current pantry is empty. Add items to get recipe suggestions!</li>';
                     return;
                 }
-                const SPOONACULAR_API_KEY = '43f72f2e87ee4c969804402b3f4a93fa';
+                const SPOONACULAR_API_KEY = '43f72f2e87ee4c969804402b3f4a93fa'; // Replace with your actual Spoonacular API key
                 if (SPOONACULAR_API_KEY === 'YOUR_SPOONACULAR_API_KEY_HERE') {
                     foundRecipesDisplay.innerHTML = '<li class="list-group-item text-danger">Error: Please replace "YOUR_SPOONACULAR_API_KEY_HERE" with your actual Spoonacular API key.</li>';
                     return;
@@ -1237,13 +1306,13 @@
 
         async function saveRecipe(recipeData) {
             const user = auth.currentUser;
-            if (!user) return alert('Not logged in');
+            if (!user) return showAlert('Not logged in');
             try {
                 const savedRecipesRef = collection(db, 'users', user.uid, 'saved_recipes');
                 const q = query(savedRecipesRef, where("id", "==", recipeData.id));
                 const querySnapshot = await getDocs(q);
                 if (!querySnapshot.empty) {
-                    alert('Recipe already saved!');
+                    showAlert('Recipe already saved!');
                     return;
                 }
                 await addDoc(savedRecipesRef, {
@@ -1254,10 +1323,10 @@
                     missedIngredientCount: recipeData.missedIngredientCount,
                     savedAt: new Date()
                 });
-                alert('Recipe saved successfully!');
+                showAlert('Recipe saved successfully!');
                 loadSavedRecipes(user.uid);
             } catch (error) {
-                alert('Error saving recipe: ' + error.message);
+                showAlert('Error saving recipe: ' + error.message);
                 console.error("Error saving recipe:", error);
             }
         }
@@ -1303,7 +1372,11 @@
                         button.addEventListener('click', (event) => {
                             const recipeId = event.target.dataset.recipeId;
                             const currentUserId = event.target.dataset.userId;
-                            removeSavedRecipe(recipeId, currentUserId);
+                            showConfirm('Are you sure you want to remove this saved recipe?', (confirmed) => {
+                                if (confirmed) {
+                                    removeSavedRecipe(recipeId, currentUserId);
+                                }
+                            });
                         });
                     });
                     savedRecipesDisplay.querySelectorAll('.open-recipe-btn').forEach(button => {
@@ -1314,19 +1387,18 @@
                     });
                 }
             } catch (error) {
-                alert('Error loading saved recipes: ' + error.message);
+                showAlert('Error loading saved recipes: ' + error.message);
                 console.error("Error loading saved recipes:", error);
             }
         }
 
         async function removeSavedRecipe(recipeId, userId) {
-            if (!confirm('Are you sure you want to remove this saved recipe?')) return;
             try {
                 await deleteDoc(doc(db, 'users', userId, 'saved_recipes', recipeId));
-                alert('Recipe removed successfully!');
+                showAlert('Recipe removed successfully!');
                 loadSavedRecipes(userId);
             } catch (error) {
-                alert('Error removing recipe: ' + error.message);
+                showAlert('Error removing recipe: ' + error.message);
                 console.error("Error removing saved recipe:", error);
             }
         }
@@ -1368,7 +1440,11 @@
                         button.addEventListener('click', (event) => {
                             const friendId = event.target.dataset.friendId;
                             const currentUserId = event.target.dataset.userId;
-                            removeFriend(friendId, currentUserId);
+                            showConfirm('Are you sure you want to remove this friend?', (confirmed) => {
+                                if (confirmed) {
+                                    removeFriend(friendId, currentUserId);
+                                }
+                            });
                         });
                     });
                     userList.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
@@ -1391,24 +1467,23 @@
                     });
                 }
             } catch (error) {
-                alert('Error loading friends: ' + error.message);
+                showAlert('Error loading friends: ' + error.message);
                 console.error("Error loading friends:", error);
             }
         }
 
         async function removeFriend(friendId, userId) {
-            if (!confirm('Are you sure you want to remove this friend?')) return;
             try {
                 await deleteDoc(doc(db, 'users', userId, 'friends', friendId));
                 await deleteDoc(doc(db, 'users', friendId, 'friends', userId));
-                alert('Friend removed successfully!');
+                showAlert('Friend removed successfully!');
                 loadUsers(userId);
                 if (friendId === currentPantryUserId) {
                     currentPantryUserId = userId;
                     renderPantryItemsByLocation(userId);
                 }
             } catch (error) {
-                alert('Error removing friend: ' + error.message);
+                showAlert('Error removing friend: ' + error.message);
                 console.error("Error removing friend:", error);
             }
         }
@@ -1437,7 +1512,7 @@
         async function saveAccountSettings() {
             const user = auth.currentUser;
             if (!user) {
-                alert('Not logged in.');
+                showAlert('Not logged in.');
                 return;
             }
             const profileName = document.getElementById('profile-name').value;
@@ -1450,10 +1525,10 @@
                     const storageRef = ref(storage, `profile_pictures/${user.uid}/${profilePictureFile.name}`);
                     await uploadBytes(storageRef, profilePictureFile);
                     photoURL = await getDownloadURL(storageRef);
-                    alert('Profile picture uploaded!');
+                    showAlert('Profile picture uploaded!');
                 } catch (error) {
                     console.error("Error uploading profile picture:", error);
-                    alert('Failed to upload profile picture: ' + error.message);
+                    showAlert('Failed to upload profile picture: ' + error.message);
                 }
             }
 
@@ -1464,10 +1539,10 @@
                     sharePantry: sharePantry,
                     email: user.email.toLowerCase()
                 }, { merge: true });
-                alert('Account settings saved!');
+                showAlert('Account settings saved!');
                 accountSettingsModal.hide();
             } catch (error) {
-                alert('Error saving account settings: ' + error.message);
+                showAlert('Error saving account settings: ' + error.message);
                 console.error("Error saving account settings:", error);
             }
         }
@@ -1476,9 +1551,9 @@
             try {
                 await signOut(auth);
                 window.showSection('welcome-section');
-                alert('You have been logged out.');
+                showAlert('You have been logged out.');
             } catch (error) {
-                alert('Logout failed: ' + error.message);
+                showAlert('Logout failed: ' + error.message);
                 console.error("Error during logout:", error);
             }
         }
