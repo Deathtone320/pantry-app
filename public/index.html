@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pantry App</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="manifest" href="manifest.json">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/quagga@0.12.1/dist/quagga.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios@1.4.0/dist/axios.min.js"></script>
@@ -609,15 +610,23 @@
                 return new bootstrap.Tooltip(tooltipTriggerEl);
             });
 
-            // Update "Logged in as" text when offcanvas is shown
+            // Update "Logged in as" text and hide hamburger button when offcanvas is shown
             document.getElementById('settings-offcanvas').addEventListener('show.bs.offcanvas', () => {
                 const user = auth.currentUser;
                 const loggedInUserDiv = document.getElementById('logged-in-user');
+                const hamburgerBtn = document.querySelector('.hamburger-btn');
                 if (user && user.email) {
                     loggedInUserDiv.textContent = `Logged in as: ${user.email}`;
                 } else {
                     loggedInUserDiv.textContent = 'Logged in as: Unknown';
                 }
+                hamburgerBtn.style.display = 'none';
+            });
+
+            // Show hamburger button when offcanvas is hidden
+            document.getElementById('settings-offcanvas').addEventListener('hide.bs.offcanvas', () => {
+                const hamburgerBtn = document.querySelector('.hamburger-btn');
+                hamburgerBtn.style.display = 'block';
             });
 
             // Handle PWA install prompt for mobile devices
@@ -771,7 +780,7 @@
             const siteUrl = window.location.origin;
             const iconUrl = 'https://github.com/Deathtone320/pantry-app/blob/main/PantryIcon.png?raw=true';
             if (deferredPrompt) {
-                // Mobile: Trigger PWA install prompt
+                // Mobile: Trigger PWA install prompt with manifest icon
                 deferredPrompt.prompt();
                 const { outcome } = await deferredPrompt.userChoice;
                 if (outcome === 'accepted') {
@@ -781,14 +790,15 @@
                 }
                 deferredPrompt = null;
             } else {
-                // Desktop: Show instructions for manual shortcut creation
+                // Desktop: Provide instructions for manual shortcut creation
                 alert(
-                    'To add a shortcut to your desktop:\n' +
+                    'To add a Pantry App shortcut to your desktop:\n' +
                     '1. Open your browser’s menu (e.g., three dots in Chrome).\n' +
-                    '2. Select "New Shortcut" or "Create Shortcut" (varies by browser).\n' +
+                    '2. Select "More Tools" > "Create Shortcut" or "Add to Desktop" (varies by browser).\n' +
                     '3. Enter the URL: ' + siteUrl + '\n' +
-                    '4. Name it "Pantry App" and choose to place it on the desktop.\n' +
-                    '5. Optionally, set the icon using this image: ' + iconUrl
+                    '4. Name it "Pantry App".\n' +
+                    '5. To use the custom icon, download the image from: ' + iconUrl + '\n' +
+                    '6. Right-click the shortcut, select "Properties", and set the icon to the downloaded image.'
                 );
             }
         }
@@ -1168,8 +1178,7 @@
         async function getRecipes() {
             const user = auth.currentUser;
             if (!user) return alert('Not logged in');
-            const foundRecipesDisplay = document.getElementById('found-recipes-display');
-            foundRecipesDisplay.innerHTML = '<p class="text-center text-muted">Finding recipes...</p>';
+            const foundRecipesDisplay = document.getElement10('found-recipes-display').innerHTML = '<p class="text-center text-muted">Finding recipes...</p>';
 
             try {
                 const querySnapshot = await getDocs(collection(db, 'pantries', currentPantryUserId, 'items'));
